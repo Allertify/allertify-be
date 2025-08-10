@@ -1,4 +1,5 @@
 # allertify-be
 
 Authors : 
-Muchammad Rafif Azis Syahlevi (https://github.com/rafifazs20)
+1. Arvan Yudhistia Ardana
+2. Muchammad Rafif Azis Syahlevi
