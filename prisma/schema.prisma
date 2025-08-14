@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model user {
+  id                  Int      @id @default(autoincrement())
+  full_name           String   @db.VarChar(100)
+  email               String   @db.VarChar(100)
+  password            String   @db.VarChar(255)
+  phone_number        String   @db.VarChar(20)
+  is_verified         Boolean  
+  role                Int
+  profile_picture_url String? 
+  createdAt           DateTime @default(now())
+  last_login          DateTime?  
+
+  // Relations
+  emergency_contacts emergency_contact[]
+  subscriptions      subscription[]
+  user_allegens      user_allergen[]
+  product_reports    product_report[]
+  product_scans      product_scan[]
+}
+
+model allergen {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  description String?  
+  is_custom   Boolean  
+
+  // Relations
+  user_allergens user_allergen[]
+}
+
+model tier_plan {
+  id                  Int      @id @default(autoincrement())
+  user_id             Int
+  plan_type           String   @db.VarChar(20)
+  scan_count_limit    Int
+  saved_product_limit Int
+
+  // Relations
+  subscriptions subscription[]
+  product_scans product_scan[]
+}
+
+model product {
+  id                Int      @id @default(autoincrement())
+  barcode           String   @db.VarChar(50)
+  name              String   @db.VarChar(100)
+  image_url         String   @db.VarChar(255)
+  nutritional_score String   @db.VarChar(10)
+  ingredients       String
+  last_updated      DateTime @default(now())
+
+  // Relations
+  product_scans product_scan[]
+  product_reports product_report[]
+}
+
+model emergency_contact {
+  id                  Int      @id @default(autoincrement())
+  user_id             Int
+  name                String   @db.VarChar(100)
+  phone_number        String   @db.VarChar(20)
+  relationship        String   @db.VarChar(50)
+
+  // Relations
+  user        user     @relation(fields: [user_id], references: [id])
+}
+
+model subscription {
+  id              Int      @id @default(autoincrement())
+  user_id         Int
+  tier_plan_id    Int   
+  start_date      DateTime @default(now())
+  end_date        DateTime
+  status          String   @db.VarChar(20)
+
+  // Relations
+  user           user      @relation(fields: [user_id], references: [id])
+  tier_plan     tier_plan  @relation(fields: [tier_plan_id], references: [id])
+}
+
+model user_allergen {
+  id               Int      @id @default(autoincrement())
+  user_id          Int
+  allergen_id      Int
+  security_level   String   @db.VarChar(20)
+
+  // Relations
+  user     user     @relation(fields: [user_id], references: [id])
+  allergen allergen @relation(fields: [allergen_id], references: [id])
+}
+
+model product_report {
+  id              Int      @id @default(autoincrement())
+  user_id         Int
+  product_id      Int
+  report_details  String   @db.VarChar(255)
+  status          String   @db.VarChar(10)
+  createdAt       DateTime @default(now())
+
+  // Relations
+  user     user     @relation(fields: [user_id], references: [id])
+  product  product  @relation(fields: [product_id], references: [id])
+}
+
+model product_scan {
+  id                Int      @id @default(autoincrement())
+  user_id           Int
+  product_id        Int
+  tier_plan_id     Int
+  scan_date         DateTime @default(now())
+  risk_level        String   @db.VarChar(20)
+  risk_explanation  String?   
+  matched_allergens String?
+  is_saved          Boolean  
+
+  // Relations
+  user     user       @relation(fields: [user_id], references: [id])
+  product  product    @relation(fields: [product_id], references: [id])
+  tier_plan tier_plan @relation(fields: [tier_plan_id], references: [id])
+}
