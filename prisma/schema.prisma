@@ -16,7 +16,7 @@ datasource db {
 model user {
   id                  Int      @id @default(autoincrement())
   full_name           String   @db.VarChar(100)
-  email               String   @db.VarChar(100)
+  email               String   @unique @db.VarChar(100)
   password            String   @db.VarChar(255)
   phone_number        String   @db.VarChar(20)
   is_verified         Boolean  
@@ -35,7 +35,7 @@ model user {
 
 model allergen {
   id          Int      @id @default(autoincrement())
-  name        String   @db.VarChar(100)
+  name        String   @unique @db.VarChar(100)
   description String?  
   is_custom   Boolean  
 
@@ -45,24 +45,22 @@ model allergen {
 
 model tier_plan {
   id                  Int      @id @default(autoincrement())
-  user_id             Int
-  plan_type           String   @db.VarChar(20)
+  plan_type           String   @unique @db.VarChar(20)
   scan_count_limit    Int
   saved_product_limit Int
 
   // Relations
   subscriptions subscription[]
-  product_scans product_scan[]
 }
 
 model product {
   id                Int      @id @default(autoincrement())
-  barcode           String   @db.VarChar(50)
+  barcode           String   @unique @db.VarChar(50)
   name              String   @db.VarChar(100)
   image_url         String   @db.VarChar(255)
   nutritional_score String   @db.VarChar(10)
   ingredients       String
-  last_updated      DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   product_scans product_scan[]
@@ -102,6 +100,8 @@ model user_allergen {
   // Relations
   user     user     @relation(fields: [user_id], references: [id])
   allergen allergen @relation(fields: [allergen_id], references: [id])
+
+  @@unique([user_id, allergen_id])
 }
 
 model product_report {
@@ -121,7 +121,6 @@ model product_scan {
   id                Int      @id @default(autoincrement())
   user_id           Int
   product_id        Int
-  tier_plan_id     Int
   scan_date         DateTime @default(now())
   risk_level        String   @db.VarChar(20)
   risk_explanation  String?   
@@ -131,5 +130,4 @@ model product_scan {
   // Relations
   user     user       @relation(fields: [user_id], references: [id])
   product  product    @relation(fields: [product_id], references: [id])
-  tier_plan tier_plan @relation(fields: [tier_plan_id], references: [id])
 }
