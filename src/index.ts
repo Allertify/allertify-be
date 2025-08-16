@@ -1,16 +1,54 @@
 
 import express, { Express, Request, Response } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit  from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { Prisma, PrismaClient } from '@prisma/client';
+
+
 
 dotenv.config();
+
+export const prisma = new PrismaClient();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-app.get('/', (req: Request, res: Response) => {
-  res.send('Express + TypeScript Server is running!');
+//security middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials:true
+}));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests, please try again later.'
 });
 
-app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+app.use(limiter);
+
+app.use(express.json({limit: '10mb'}));
+app.use(express.urlencoded({extended: true}));
+
+
+
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
+
+
+
+app.listen(port, () => {
+  console.log(`🚀 Allertify Backend Server running on port ${port}`);
+  console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+export default app;
