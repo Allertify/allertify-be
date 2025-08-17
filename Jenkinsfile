@@ -5,16 +5,19 @@ pipeline {
         NODE_VERSION = '20'
         DOCKER_IMAGE = 'allertify-be'
         DOCKER_TAG = "${BUILD_NUMBER}"
+        COMPOSE_PROJECT_NAME = 'allertify-be'
     }
     
     stages {
         stage('Setup Env Vars') {
             steps {
                 withCredentials([
-                  
+                    usernamePassword(credentialsId: 'allertify', usernameVariable: 'VPS_USER', passwordVariable: 'VPS_PASS'),
                     string(credentialsId: 'vps-host', variable: 'VPS_HOST')
                 ]) {
                     script {
+                        env.VPS_USER = VPS_USER
+                        env.VPS_PASS = VPS_PASS
                         env.VPS_HOST = VPS_HOST
                     }
                 }
@@ -92,12 +95,12 @@ pipeline {
             }
             steps {
                 withCredentials([
-                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
+                    usernamePassword(credentialsId: 'allertify', usernameVariable: 'VPS_USER', passwordVariable: 'VPS_PASS'),
                     file(credentialsId: 'allertify-env', variable: 'ENV_FILE')
                 ]) {
                     sh '''#!/bin/bash
                         echo "📁 Mengecek dan membersihkan direktori allertify-be di VPS..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" '
+                        ssh -o StrictHostKeyChecking=no "${VPS_USER}@${VPS_HOST}" '
                             if [ -d ~/allertify-be ]; then
                                 echo "📦 Direktori allertify-be ditemukan. Menghapus..."
                                 rm -rf ~/allertify-be
@@ -108,13 +111,13 @@ pipeline {
                         '
 
                         echo "📤 Menyalin source code..."
-                        rsync -av --exclude='.env' -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY}" ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
+                        rsync -av --exclude='.env' -e "ssh -o StrictHostKeyChecking=no" ./ "${VPS_USER}@${VPS_HOST}:~/allertify-be/"
 
-                        echo "�� Menyalin .env dari Credentials ke VPS..."
-                        scp -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${ENV_FILE}" "${SSH_USER}@${VPS_HOST}:~/allertify-be/.env"
+                        echo "📤 Menyalin .env dari Credentials ke VPS..."
+                        scp -o StrictHostKeyChecking=no "${ENV_FILE}" "${VPS_USER}@${VPS_HOST}:~/allertify-be/.env"
 
-                        echo "�� Menjalankan docker compose di VPS..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
+                        echo "🚀 Menjalankan docker compose di VPS..."
+                        ssh -o StrictHostKeyChecking=no "${VPS_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
 
                         echo "✅ Deployment berhasil dijalankan"
                     '''
@@ -125,11 +128,11 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 withCredentials([
-                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
+                    usernamePassword(credentialsId: 'allertify', usernameVariable: 'VPS_USER', passwordVariable: 'VPS_PASS')
                 ]) {
                     sh '''#!/bin/bash
                         echo "Memeriksa container yang berjalan..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "docker ps"
+                        ssh -o StrictHostKeyChecking=no "${VPS_USER}@${VPS_HOST}" "docker ps"
                     '''
                 }
                 
