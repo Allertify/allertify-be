@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -31,6 +32,7 @@ model user {
   user_allegens      user_allergen[]
   product_reports    product_report[]
   product_scans      product_scan[]
+  daily_scan_usages  daily_scan_usage[]
 }
 
 model allergen {
@@ -130,4 +132,16 @@ model product_scan {
   // Relations
   user     user       @relation(fields: [user_id], references: [id])
   product  product    @relation(fields: [product_id], references: [id])
+}
+
+model daily_scan_usage {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  usage_date  DateTime @default(now())
+  scan_count  Int      @default(0)
+  
+  // Relations
+  user        user     @relation(fields: [user_id], references: [id])
+  
+  @@unique([user_id, usage_date])
 }

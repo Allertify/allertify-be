@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import productService from './product.service';
 import aiService, { AIEvaluation } from './ai.service';
+import scanLimitService from './scan-limit.service';
 
 const prisma = new PrismaClient();
 
@@ -20,6 +21,10 @@ export interface ScanResult {
     imageUrl: string;
     ingredients: string;
   };
+  scanLimit?: {
+    remainingScans: number;
+    dailyLimit: number;
+  };
 }
 
 export class ScanService {
@@ -28,23 +33,29 @@ export class ScanService {
    */
   async processBarcodeScan(barcode: string, userId: number): Promise<ScanResult> {
     try {
-      // 1. Cari atau buat produk berdasarkan barcode
+      // 1. Check daily scan limit
+      const canScan = await scanLimitService.canUserScanToday(userId);
+      if (!canScan.canScan) {
+        throw new Error(`Daily scan limit exceeded. You have used ${canScan.dailyLimit} scans today. Upgrade your plan for more scans.`);
+      }
+
+      // 2. Cari atau buat produk berdasarkan barcode
       const product = await productService.findOrCreateProductByBarcode(barcode);
 
-      // 2. Ambil daftar alergi pengguna dari database
+      // 3. Ambil daftar alergi pengguna dari database
       const userAllergies = await this.getUserAllergies(userId);
 
-      // 3. Analisis bahan menggunakan AI
+      // 4. Analisis bahan menggunakan AI
       const aiAnalysis = await aiService.analyzeIngredientsWithContext(
         product.ingredients,
         userAllergies,
         {
           productName: product.name,
-          brand: '', // Could be extracted from product name or added to schema
+          brand: '', 
         }
       );
 
-      // 4. Simpan hasil scan ke database
+      // 5. Simpan hasil scan ke database
       const scanResult = await prisma.product_scan.create({
         data: {
           user_id: userId,
@@ -55,15 +66,27 @@ export class ScanService {
           matched_allergens: aiAnalysis.matchedAllergens.length > 0 
             ? aiAnalysis.matchedAllergens.join(', ') 
             : null,
-          is_saved: false, // User can save it later
+          is_saved: false, 
         },
         include: {
           product: true,
         }
       });
 
-      // 5. Transform dan return hasil
-      return this.transformScanResult(scanResult);
+      // 6. Increment daily scan usage
+      await scanLimitService.incrementDailyScanUsage(userId);
+
+      // 7. Get updated scan limit info
+      const updatedLimitInfo = await scanLimitService.getUserDailyScanLimit(userId);
+
+      // 8. Transform dan return hasil
+      const result = this.transformScanResult(scanResult);
+      result.scanLimit = {
+        remainingScans: updatedLimitInfo.remainingScans,
+        dailyLimit: updatedLimitInfo.dailyLimit
+      };
+
+      return result;
 
     } catch (error) {
       console.error('Error in processBarcodeScan:', error);
@@ -85,31 +108,29 @@ export class ScanService {
     productId?: number
   ): Promise<ScanResult> {
     try {
-      // 1. Ambil daftar alergi pengguna
+      // 1. Check daily scan limit
+      const canScan = await scanLimitService.canUserScanToday(userId);
+      if (!canScan.canScan) {
+        throw new Error(`Daily scan limit exceeded. You have used ${canScan.dailyLimit} scans today. Upgrade your plan for more scans.`);
+      }
+
+      // 2. Ambil daftar alergi pengguna
       const userAllergies = await this.getUserAllergies(userId);
 
-      // 2. Analisis gambar menggunakan AI
+      // 3. Analisis gambar menggunakan AI
       const aiAnalysis = await aiService.analyzeProductImage(imageUrl, userAllergies);
 
-      // 3. Tentukan produk yang akan digunakan
+      // 4. Tentukan produk yang akan digunakan
       let product;
       if (productId) {
         // Jika productId disediakan, gunakan produk yang sudah ada
         product = await productService.findProductById(productId);
       } else {
         // Jika tidak ada productId, buat produk baru dengan data minimal
-        product = await prisma.product.create({
-          data: {
-            barcode: `IMG_${Date.now()}_${userId}`, // Generate unique barcode for image scans
-            name: 'Product from Image Scan',
-            image_url: imageUrl,
-            nutritional_score: 'N/A',
-            ingredients: 'Extracted from image', // Could be enhanced to extract actual ingredients
-          }
-        });
+        product = await productService.createMinimalProduct(imageUrl);
       }
 
-      // 4. Simpan hasil scan ke database
+      // 5. Simpan hasil scan ke database
       const scanResult = await prisma.product_scan.create({
         data: {
           user_id: userId,
@@ -127,17 +148,28 @@ export class ScanService {
         }
       });
 
-      // 5. Transform dan return hasil
-      return this.transformScanResult(scanResult);
+      // 6. Increment daily scan usage
+      await scanLimitService.incrementDailyScanUsage(userId);
+
+      // 7. Get updated scan limit info
+      const updatedLimitInfo = await scanLimitService.getUserDailyScanLimit(userId);
+
+      // 8. Transform dan return hasil
+      const result = this.transformScanResult(scanResult);
+      result.scanLimit = {
+        remainingScans: updatedLimitInfo.remainingScans,
+        dailyLimit: updatedLimitInfo.dailyLimit
+      };
+
+      return result;
 
     } catch (error) {
       console.error('Error in processImageScan:', error);
       
       if (error instanceof Error) {
-        throw new Error(`Image scan failed: ${error.message}`);
+        throw error;
       }
-      
-      throw new Error('Unknown error occurred during image scan');
+      throw new Error('Unknown error occurred while processing image scan');
     }
   }
 
@@ -224,6 +256,17 @@ export class ScanService {
    */
   private async getUserAllergies(userId: number): Promise<string[]> {
     try {
+      // Jika bypass auth aktif, return hardcoded allergens
+      if (process.env.BYPASS_AUTH === 'true') {
+        const hardcodedAllergens = process.env.HARDCODED_ALLERGENS 
+          ? process.env.HARDCODED_ALLERGENS.split(',').map(a => a.trim())
+          : ['gluten', 'lactose', 'nuts', 'shellfish', 'eggs'];
+        
+        console.log('🔓 Using hardcoded allergens:', hardcodedAllergens);
+        return hardcodedAllergens;
+      }
+
+      // Normal flow: query database
       const userAllergies = await prisma.user_allergen.findMany({
         where: { user_id: userId },
         include: {

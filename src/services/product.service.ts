@@ -35,9 +35,9 @@ export class ProductService {
 
       // 2. Jika tidak ditemukan, panggil Open Food Facts API
       const response = await axios.get<OpenFoodFactsResponse>(
-        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
+        `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`,
         {
-          timeout: 10000, // 10 second timeout
+          timeout: 10000, 
           headers: {
             'User-Agent': 'Allertify/1.0.0 (https://allertify.com)'
           }
@@ -50,6 +50,9 @@ export class ProductService {
       }
 
       const productData = response.data.product;
+      console.log(
+        productData
+      )
 
       // 4. Ekstrak data yang relevan
       const productName = productData.product_name || 'Unknown Product';
@@ -74,13 +77,13 @@ export class ProductService {
     } catch (error: unknown) {
       // Enhanced error handling
       if (axios.isAxiosError(error)) {
-        if (error.response?.status === 404) {
-          throw new Error(`Product with barcode ${barcode} not found in Open Food Facts database`);
-        }
-        if (error.code === 'ECONNABORTED') {
-          throw new Error('Request to Open Food Facts API timed out');
-        }
-        throw new Error(`Open Food Facts API error: ${error.message}`);
+        // if (error.response?.status === 404) {
+        //   throw new Error(`Product with barcode ${barcode} not found in Open Food Facts database`);
+        // }
+        // if (error.code === 'ECONNABORTED') {
+        //   throw new Error('Request to Open Food Facts API timed out');
+        // }
+        // throw new Error(`Open Food Facts API error: ${error.message}`);
       }
       
       if (error instanceof Error) {
@@ -134,6 +137,30 @@ export class ProductService {
         throw error;
       }
       throw new Error('Unknown error occurred while updating product');
+    }
+  }
+
+  /**
+   * Buat produk minimal untuk image scan
+   */
+  async createMinimalProduct(imageUrl: string) {
+    try {
+      const product = await prisma.product.create({
+        data: {
+          barcode: `IMG_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, 
+          name: 'Product from Image Scan',
+          image_url: imageUrl,
+          nutritional_score: 'N/A',
+          ingredients: 'Extracted from image', 
+        }
+      });
+
+      return product;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred while creating minimal product');
     }
   }
 }

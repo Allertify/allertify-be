@@ -5,8 +5,14 @@ import asyncHandler from '../middlewares/asyncHandler';
 
 const router = Router();
 
-// Semua routes scan memerlukan autentikasi
-router.use(authenticateToken);
+
+ router.use(authenticateToken);  //
+
+/**
+ * GET /scans/limit
+ * Mendapatkan informasi daily scan limit pengguna
+ */
+router.get('/limit', asyncHandler(scanController.getUserScanLimit));
 
 /**
  * POST /scans/barcode/:barcode
@@ -25,7 +31,7 @@ router.post('/image', asyncHandler(scanController.scanImage));
  * PUT /scans/:scanId/save
  * Toggle save status untuk hasil scan
  */
-router.put('/:scanId/save', asyncHandler(scanController.toggleSaveScan));
+router.put('/save/:scanId', asyncHandler(scanController.toggleSaveScan));
 
 /**
  * GET /scans/history

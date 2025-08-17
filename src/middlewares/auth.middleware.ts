@@ -19,12 +19,24 @@ declare global {
 
 /**
  * Middleware untuk autentikasi JWT
- * TODO: Ini adalah implementasi sementara, akan diganti oleh Rafif dengan implementasi lengkap
+ * TODO: implementasi sementara
  */
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Bypass authentication jika environment variable BYPASS_AUTH = true
+    if (process.env.BYPASS_AUTH === 'true') {
+     
+      req.user = {
+        userId: process.env.HARDCODED_USER_ID || '1',
+        email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
+        role: process.env.HARDCODED_USER_ROLE || 'user'
+      };
+      console.log('🔓 AUTH BYPASSED - Using hardcoded user:', req.user);
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
       return res.status(401).json({
@@ -88,5 +100,9 @@ export const requireRole = (roles: string[]) => {
     next();
   };
 };
+
+
+
+
 
 

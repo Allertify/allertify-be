@@ -25,7 +25,7 @@ export const errorHandler = (
     userAgent: req.get('User-Agent'),
   });
 
-  // Don't expose internal errors in production
+ 
   const responseMessage = process.env.NODE_ENV === 'production' && statusCode === 500
     ? 'Something went wrong!'
     : message;

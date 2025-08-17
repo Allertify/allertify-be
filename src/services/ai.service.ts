@@ -1,8 +1,8 @@
 import { generateObject } from 'ai';
-import { google } from '@ai-sdk/google';
 import { z } from 'zod';
+import { google } from '../middlewares/google.gen.ai';
 
-// Zod schema untuk output AI yang terstruktur
+
 export const AIEvaluationSchema = z.object({
   riskLevel: z.enum(['SAFE', 'CAUTION', 'RISKY']),
   matchedAllergens: z.array(z.string()),
@@ -12,8 +12,48 @@ export const AIEvaluationSchema = z.object({
 export type AIEvaluation = z.infer<typeof AIEvaluationSchema>;
 
 export class AIService {
-  private geminiModel = google('gemini-1.5-pro');
-  private geminiVisionModel = google('gemini-1.5-pro-vision');
+  private geminiModel = google('gemini-2.5-flash');
+  private geminiVisionModel = google('gemini-2.5-pro-vision');
+
+  /**
+   * Mock AI response untuk development/testing 
+   */
+  private getMockAIResponse(userAllergies: string[], ingredientsText: string): AIEvaluation {
+    console.log('🤖 AI BYPASSED - Using mock response');
+    
+    // Simple logic untuk mock response
+    const lowerIngredients = ingredientsText.toLowerCase();
+    const matchedAllergens: string[] = [];
+    
+    // Check untuk common allergens
+    userAllergies.forEach(allergen => {
+      const allergenLower = allergen.toLowerCase();
+      if (lowerIngredients.includes(allergenLower) || 
+          lowerIngredients.includes(allergenLower.replace(' ', ''))) {
+        matchedAllergens.push(allergen);
+      }
+    });
+    
+    let riskLevel: 'SAFE' | 'CAUTION' | 'RISKY' = 'SAFE';
+    let reasoning = 'Product appears safe based on ingredient analysis.';
+    
+    if (matchedAllergens.length > 0) {
+      riskLevel = 'RISKY';
+      reasoning = `⚠️ HIGH RISK: Detected allergens: ${matchedAllergens.join(', ')}. Avoid this product.`;
+    } else if (lowerIngredients.includes('may contain') || lowerIngredients.includes('traces of')) {
+      riskLevel = 'CAUTION';
+      reasoning = '⚠️ CAUTION: Product may contain traces of allergens. Check with manufacturer.';
+    } else if (lowerIngredients.includes('natural flavors') || lowerIngredients.includes('spices')) {
+      riskLevel = 'CAUTION';
+      reasoning = '⚠️ CAUTION: Contains natural flavors/spices that may include allergens.';
+    }
+    
+    return {
+      riskLevel,
+      matchedAllergens,
+      reasoning
+    };
+  }
 
   /**
    * Menganalisis teks bahan/ingredients berdasarkan alergi pengguna
@@ -34,6 +74,11 @@ export class AIService {
           matchedAllergens: [],
           reasoning: 'No allergies specified by user, product is considered safe.'
         };
+      }
+
+      // Bypass AI jika environment variable BYPASS_AI = true
+      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+        return this.getMockAIResponse(userAllergies, ingredientsText);
       }
 
       const prompt = `
@@ -66,13 +111,19 @@ Provide a thorough but concise reasoning that explains your decision.
         model: this.geminiModel,
         schema: AIEvaluationSchema,
         prompt,
-        temperature: 0.1, // Low temperature for consistent results
+        temperature: 0.1, 
       });
 
       return result.object;
 
     } catch (error) {
       console.error('Error in analyzeIngredientsText:', error);
+      
+      // Fallback ke mock response jika AI gagal
+      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+        console.log('🔄 AI failed, falling back to mock response');
+        return this.getMockAIResponse(userAllergies, ingredientsText);
+      }
       
       if (error instanceof Error) {
         throw new Error(`AI analysis failed: ${error.message}`);
@@ -103,34 +154,37 @@ Provide a thorough but concise reasoning that explains your decision.
         };
       }
 
-      const prompt = `
-You are an expert nutritionist and allergy specialist with OCR capabilities. Your task is to:
+      // Bypass AI jika environment variable BYPASS_AI = true
+      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+        return {
+          riskLevel: 'CAUTION',
+          matchedAllergens: [],
+          reasoning: '🤖 AI BYPASSED - Image analysis requires AI service. Set BYPASS_AI=false to enable real AI analysis.'
+        };
+      }
 
-1. READ and EXTRACT the ingredients/composition list from this product image
-2. ANALYZE the extracted ingredients against the user's allergies
-3. ASSESS the allergy risk level
+      const prompt = `
+You are an expert nutritionist and allergy specialist. Your task is to analyze food product images and assess allergy risks.
 
 USER ALLERGIES: ${userAllergies.join(', ')}
 
-Please examine the image and:
-1. Extract all readable ingredients text from the product label
-2. Analyze those ingredients against the user's allergy list
-3. Determine the risk level and provide reasoning
+Please analyze the product image above and determine:
+1. Risk level based on the presence of user's allergens
+2. Which specific allergens from the user's list are found in the product
+3. Detailed reasoning for your assessment
+
+Look for:
+- Ingredient lists on packaging
+- Allergy warnings (e.g., "Contains: milk, nuts")
+- Cross-contamination notices
+- Product name and brand information
 
 RISK LEVELS:
-- SAFE: No allergens detected in the ingredients
-- CAUTION: Possible cross-contamination or unclear text that might contain allergens
+- SAFE: No allergens detected, safe for consumption
+- CAUTION: Possible cross-contamination or unclear information that might contain allergens
 - RISKY: Direct presence of user's allergens, should avoid
 
-If you cannot clearly read the ingredients text from the image, set risk level to CAUTION and explain that the text is not clearly readable.
-
-Consider:
-- Direct ingredient matches
-- Alternative names for allergens
-- Cross-contamination warnings
-- Manufacturing statements
-
-Provide detailed reasoning that includes what ingredients you found and why you made your assessment.
+Provide a thorough but concise reasoning that explains your decision.
       `;
 
       const result = await generateObject({
@@ -159,6 +213,16 @@ Provide detailed reasoning that includes what ingredients you found and why you 
     } catch (error) {
       console.error('Error in analyzeProductImage:', error);
       
+      // Fallback ke mock response jika AI gagal
+      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+        console.log('🔄 AI failed, falling back to mock response');
+        return {
+          riskLevel: 'CAUTION',
+          matchedAllergens: [],
+          reasoning: '🤖 AI BYPASSED - Image analysis failed. Set BYPASS_AI=false to enable real AI analysis.'
+        };
+      }
+      
       if (error instanceof Error) {
         throw new Error(`AI image analysis failed: ${error.message}`);
       }
@@ -180,6 +244,11 @@ Provide detailed reasoning that includes what ingredients you found and why you 
     }
   ): Promise<AIEvaluation> {
     try {
+      // Bypass AI jika environment variable BYPASS_AI = true
+      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+        return this.getMockAIResponse(userAllergies, ingredientsText);
+      }
+
       const contextInfo = [];
       if (context.productName) contextInfo.push(`Product: ${context.productName}`);
       if (context.brand) contextInfo.push(`Brand: ${context.brand}`);
@@ -220,6 +289,12 @@ Provide a thorough but concise reasoning that explains your decision.
 
     } catch (error) {
       console.error('Error in analyzeIngredientsWithContext:', error);
+      
+      // Fallback ke mock response jika AI gagal
+      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+        console.log('🔄 AI failed, falling back to mock response');
+        return this.getMockAIResponse(userAllergies, ingredientsText);
+      }
       
       if (error instanceof Error) {
         throw new Error(`AI contextual analysis failed: ${error.message}`);

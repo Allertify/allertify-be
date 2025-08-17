@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import scanService from '../services/scan.service';
+import scanLimitService from '../services/scan-limit.service';
 import Joi from 'joi';
 
 // Extend Express Request interface untuk user data dari auth middleware
@@ -52,10 +53,28 @@ export class ScanController {
    * Scan produk berdasarkan barcode
    */
   scanBarcode = async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
+    const requestId = Math.random().toString(36).substring(7);
+    
+    console.log(`🔍 [${requestId}] [SCAN_BARCODE] Request started:`, {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      params: req.params,
+      query: req.query,
+      headers: {
+        'user-agent': req.headers['user-agent'],
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
+      },
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Validasi parameter
       const { error: paramError, value: paramValue } = barcodeParamSchema.validate(req.params);
       if (paramError) {
+        console.log(`❌ [${requestId}] [SCAN_BARCODE] Validation error:`, paramError.details);
         return res.status(400).json({
           success: false,
           message: 'Validation error',
@@ -68,6 +87,7 @@ export class ScanController {
 
       // Pastikan user sudah login
       if (!req.user?.userId) {
+        console.log(`❌ [${requestId}] [SCAN_BARCODE] Authentication failed: No user data`);
         return res.status(401).json({
           success: false,
           message: 'Authentication required'
@@ -77,8 +97,25 @@ export class ScanController {
       const { barcode } = paramValue;
       const userId = parseInt(req.user.userId);
 
+      console.log(`✅ [${requestId}] [SCAN_BARCODE] Validation passed:`, {
+        barcode,
+        userId,
+        userEmail: req.user.email,
+        userRole: req.user.role
+      });
+
       // Proses scan barcode
+      console.log(`🔄 [${requestId}] [SCAN_BARCODE] Calling scanService.processBarcodeScan...`);
       const scanResult = await scanService.processBarcodeScan(barcode, userId);
+      
+      console.log(`✅ [${requestId}] [SCAN_BARCODE] Service call successful:`, {
+        resultType: typeof scanResult,
+        hasData: !!scanResult,
+        timestamp: new Date().toISOString()
+      });
+
+      const responseTime = Date.now() - startTime;
+      console.log(`🎯 [${requestId}] [SCAN_BARCODE] Request completed successfully in ${responseTime}ms`);
 
       res.status(200).json({
         success: true,
@@ -87,6 +124,21 @@ export class ScanController {
       });
 
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+      console.error(`💥 [${requestId}] [SCAN_BARCODE] Error occurred after ${responseTime}ms:`, {
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : error,
+        requestInfo: {
+          method: req.method,
+          url: req.url,
+          params: req.params,
+          userId: req.user?.userId,
+          timestamp: new Date().toISOString()
+        }
+      });
       next(error);
     }
   };
@@ -96,10 +148,27 @@ export class ScanController {
    * Scan produk berdasarkan gambar (OCR fallback)
    */
   scanImage = async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
+    const requestId = Math.random().toString(36).substring(7);
+    
+    console.log(`🖼️ [${requestId}] [SCAN_IMAGE] Request started:`, {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      body: req.body,
+      headers: {
+        'user-agent': req.headers['user-agent'],
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
+      },
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Validasi body request
       const { error: bodyError, value: bodyValue } = imageScanSchema.validate(req.body);
       if (bodyError) {
+        console.log(`❌ [${requestId}] [SCAN_IMAGE] Validation error:`, bodyError.details);
         return res.status(400).json({
           success: false,
           message: 'Validation error',
@@ -112,6 +181,7 @@ export class ScanController {
 
       // Pastikan user sudah login
       if (!req.user?.userId) {
+        console.log(`❌ [${requestId}] [SCAN_IMAGE] Authentication failed: No user data`);
         return res.status(401).json({
           success: false,
           message: 'Authentication required'
@@ -121,8 +191,26 @@ export class ScanController {
       const { imageUrl, productId } = bodyValue;
       const userId = parseInt(req.user.userId);
 
+      console.log(`✅ [${requestId}] [SCAN_IMAGE] Validation passed:`, {
+        imageUrl,
+        productId,
+        userId,
+        userEmail: req.user.email,
+        userRole: req.user.role
+      });
+
       // Proses scan gambar
+      console.log(`🔄 [${requestId}] [SCAN_IMAGE] Calling scanService.processImageScan...`);
       const scanResult = await scanService.processImageScan(imageUrl, userId, productId);
+      
+      console.log(`✅ [${requestId}] [SCAN_IMAGE] Service call successful:`, {
+        resultType: typeof scanResult,
+        hasData: !!scanResult,
+        timestamp: new Date().toISOString()
+      });
+
+      const responseTime = Date.now() - startTime;
+      console.log(`🎯 [${requestId}] [SCAN_IMAGE] Request completed successfully in ${responseTime}ms`);
 
       res.status(200).json({
         success: true,
@@ -131,6 +219,21 @@ export class ScanController {
       });
 
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+      console.error(`💥 [${requestId}] [SCAN_IMAGE] Error occurred after ${responseTime}ms:`, {
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : error,
+        requestInfo: {
+          method: req.method,
+          url: req.url,
+          body: req.body,
+          userId: req.user?.userId,
+          timestamp: new Date().toISOString()
+        }
+      });
       next(error);
     }
   };
@@ -188,10 +291,27 @@ export class ScanController {
    * Mendapatkan riwayat scan pengguna
    */
   getScanHistory = async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
+    const requestId = Math.random().toString(36).substring(7);
+    
+    console.log(`📚 [${requestId}] [SCAN_HISTORY] Request started:`, {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      query: req.query,
+      headers: {
+        'user-agent': req.headers['user-agent'],
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
+      },
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Validasi query parameters
       const { error: queryError, value: queryValue } = scanHistoryQuerySchema.validate(req.query);
       if (queryError) {
+        console.log(`❌ [${requestId}] [SCAN_HISTORY] Validation error:`, queryError.details);
         return res.status(400).json({
           success: false,
           message: 'Validation error',
@@ -204,6 +324,7 @@ export class ScanController {
 
       // Pastikan user sudah login
       if (!req.user?.userId) {
+        console.log(`❌ [${requestId}] [SCAN_HISTORY] Authentication failed: No user data`);
         return res.status(401).json({
           success: false,
           message: 'Authentication required'
@@ -213,12 +334,30 @@ export class ScanController {
       const userId = parseInt(req.user.userId);
       const { limit, offset, savedOnly } = queryValue;
 
+      console.log(`✅ [${requestId}] [SCAN_HISTORY] Validation passed:`, {
+        userId,
+        limit,
+        offset,
+        savedOnly,
+        userEmail: req.user.email,
+        userRole: req.user.role
+      });
+
       // Ambil riwayat scan
+      console.log(`🔄 [${requestId}] [SCAN_HISTORY] Calling scanService.getUserScanHistory...`);
       const scanHistory = await scanService.getUserScanHistory(userId, {
         limit,
         offset,
         savedOnly
       });
+      
+      console.log(`✅ [${requestId}] [SCAN_HISTORY] Service call successful:`, {
+        resultCount: scanHistory.length,
+        timestamp: new Date().toISOString()
+      });
+
+      const responseTime = Date.now() - startTime;
+      console.log(`🎯 [${requestId}] [SCAN_HISTORY] Request completed successfully in ${responseTime}ms`);
 
       res.status(200).json({
         success: true,
@@ -234,6 +373,21 @@ export class ScanController {
       });
 
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+      console.error(`💥 [${requestId}] [SCAN_HISTORY] Error occurred after ${responseTime}ms:`, {
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : error,
+        requestInfo: {
+          method: req.method,
+          url: req.url,
+          query: req.query,
+          userId: req.user?.userId,
+          timestamp: new Date().toISOString()
+        }
+      });
       next(error);
     }
   };
@@ -248,6 +402,93 @@ export class ScanController {
       req.query.savedOnly = 'true';
       return await this.getScanHistory(req, res, next);
     } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * GET /scans/limit
+   * Mendapatkan informasi daily scan limit pengguna
+   */
+  getUserScanLimit = async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
+    const requestId = Math.random().toString(36).substring(7);
+    
+    console.log(`📊 [${requestId}] [SCAN_LIMIT] Request started:`, {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      headers: {
+        'user-agent': req.headers['user-agent'],
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      // Pastikan user sudah login
+      if (!req.user?.userId) {
+        console.log(`❌ [${requestId}] [SCAN_LIMIT] Authentication failed: No user data`);
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+
+      const userId = parseInt(req.user.userId);
+
+      console.log(`✅ [${requestId}] [SCAN_LIMIT] Validation passed:`, {
+        userId,
+        userEmail: req.user.email,
+        userRole: req.user.role
+      });
+
+      // Ambil informasi scan limit
+      console.log(`🔄 [${requestId}] [SCAN_LIMIT] Calling scanLimitService.getUserDailyScanLimit...`);
+      const limitInfo = await scanLimitService.getUserDailyScanLimit(userId);
+      
+      console.log(`✅ [${requestId}] [SCAN_LIMIT] Service call successful:`, {
+        limitInfo: {
+          userId: limitInfo.userId,
+          currentUsage: limitInfo.currentUsage,
+          dailyLimit: limitInfo.dailyLimit,
+          remainingScans: limitInfo.remainingScans
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      const responseTime = Date.now() - startTime;
+      console.log(`🎯 [${requestId}] [SCAN_LIMIT] Request completed successfully in ${responseTime}ms`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Scan limit information retrieved successfully',
+        data: {
+          userId: limitInfo.userId,
+          currentUsage: limitInfo.currentUsage,
+          dailyLimit: limitInfo.dailyLimit,
+          remainingScans: limitInfo.remainingScans,
+          isLimitExceeded: limitInfo.isLimitExceeded,
+          canScan: !limitInfo.isLimitExceeded
+        }
+      });
+
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      console.error(`💥 [${requestId}] [SCAN_LIMIT] Error occurred after ${responseTime}ms:`, {
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : error,
+        requestInfo: {
+          method: req.method,
+          url: req.url,
+          userId: req.user?.userId,
+          timestamp: new Date().toISOString()
+        }
+      });
       next(error);
     }
   };

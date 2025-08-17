@@ -8,15 +8,15 @@ async function main() {
 
   // Create default allergens
   const allergens = [
-    { name: 'Milk', description: 'Dairy products', category: 'dairy' },
-    { name: 'Eggs', description: 'Chicken eggs and egg products', category: 'eggs' },
-    { name: 'Fish', description: 'Fish and fish products', category: 'seafood' },
-    { name: 'Shellfish', description: 'Crustaceans and mollusks', category: 'seafood' },
-    { name: 'Tree Nuts', description: 'Almonds, walnuts, cashews, etc.', category: 'nuts' },
-    { name: 'Peanuts', description: 'Peanuts and peanut products', category: 'nuts' },
-    { name: 'Wheat', description: 'Wheat and wheat products', category: 'grains' },
-    { name: 'Soybeans', description: 'Soy and soy products', category: 'legumes' },
-    { name: 'Sesame', description: 'Sesame seeds and products', category: 'seeds' },
+    { name: 'Milk', description: 'Dairy products' },
+    { name: 'Eggs', description: 'Chicken eggs and egg products' },
+    { name: 'Fish', description: 'Fish and fish products' },
+    { name: 'Shellfish', description: 'Crustaceans and mollusks' },
+    { name: 'Tree Nuts', description: 'Almonds, walnuts, cashews, etc.' },
+    { name: 'Peanuts', description: 'Peanuts and peanut products' },
+    { name: 'Wheat', description: 'Wheat and wheat products' },
+    { name: 'Soybeans', description: 'Soy and soy products' },
+    { name: 'Sesame', description: 'Sesame seeds and products' },
   ];
 
   console.log('Creating allergens...');
@@ -24,7 +24,10 @@ async function main() {
     await prisma.allergen.upsert({
       where: { name: allergen.name },
       update: {},
-      create: allergen,
+      create: {
+        ...allergen,
+        is_custom: false,
+      },
     });
   }
 
@@ -35,9 +38,11 @@ async function main() {
     update: {},
     create: {
       email: 'admin@allertify.com',
-      name: 'Admin User',
-      passwordHash: adminPassword,
-      role: 'ADMIN',
+      full_name: 'Admin User',
+      password: adminPassword,
+      phone_number: '+6281234567890', // Default phone number for admin
+      is_verified: true, // Admin should be verified by default
+      role: 1,
     },
   });
 
