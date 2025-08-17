@@ -101,7 +101,7 @@ pipeline {
                 ]) {
                     sh '''#!/bin/bash
                         echo "📁 Mengecek dan membersihkan direktori allertify-be di VPS..."
-                        ssh -o StrictHostKeyChecking=no "${SSH_USER}@${VPS_HOST}" '
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" '
                             if [ -d ~/allertify-be ]; then
                                 echo "📦 Direktori allertify-be ditemukan. Menghapus..."
                                 rm -rf ~/allertify-be
@@ -112,13 +112,13 @@ pipeline {
                         '
 
                         echo "📤 Menyalin source code..."
-                        rsync -av --exclude='.env' -e "ssh -o StrictHostKeyChecking=no" ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
+                        rsync -av --exclude='.env' -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY}" ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
 
                         echo "📤 Menyalin .env dari Credentials ke VPS..."
-                        scp -o StrictHostKeyChecking=no "${ENV_FILE}" "${SSH_USER}@${VPS_HOST}:~/allertify-be/.env"
+                        scp -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${ENV_FILE}" "${SSH_USER}@${VPS_HOST}:~/allertify-be/.env"
 
                         echo "🚀 Menjalankan docker compose di VPS..."
-                        ssh -o StrictHostKeyChecking=no "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
 
                         echo "✅ Deployment berhasil dijalankan"
                     '''
@@ -134,7 +134,7 @@ pipeline {
                 ]) {
                     sh '''#!/bin/bash
                         echo "Memeriksa container yang berjalan..."
-                        ssh -o StrictHostKeyChecking=no "${SSH_USER}@${VPS_HOST}" "docker ps"
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "docker ps"
                     '''
                 }
                 
