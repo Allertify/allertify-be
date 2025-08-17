@@ -1,0 +1,269 @@
+import { PrismaClient } from '@prisma/client';
+import productService from './product.service';
+import aiService, { AIEvaluation } from './ai.service';
+
+const prisma = new PrismaClient();
+
+export interface ScanResult {
+  id: number;
+  userId: number;
+  productId: number;
+  scanDate: Date;
+  riskLevel: string;
+  riskExplanation: string | null;
+  matchedAllergens: string | null;
+  isSaved: boolean;
+  product: {
+    id: number;
+    barcode: string;
+    name: string;
+    imageUrl: string;
+    ingredients: string;
+  };
+}
+
+export class ScanService {
+  /**
+   * Memproses scan barcode produk
+   */
+  async processBarcodeScan(barcode: string, userId: number): Promise<ScanResult> {
+    try {
+      // 1. Cari atau buat produk berdasarkan barcode
+      const product = await productService.findOrCreateProductByBarcode(barcode);
+
+      // 2. Ambil daftar alergi pengguna dari database
+      const userAllergies = await this.getUserAllergies(userId);
+
+      // 3. Analisis bahan menggunakan AI
+      const aiAnalysis = await aiService.analyzeIngredientsWithContext(
+        product.ingredients,
+        userAllergies,
+        {
+          productName: product.name,
+          brand: '', // Could be extracted from product name or added to schema
+        }
+      );
+
+      // 4. Simpan hasil scan ke database
+      const scanResult = await prisma.product_scan.create({
+        data: {
+          user_id: userId,
+          product_id: product.id,
+          scan_date: new Date(),
+          risk_level: aiAnalysis.riskLevel,
+          risk_explanation: aiAnalysis.reasoning,
+          matched_allergens: aiAnalysis.matchedAllergens.length > 0 
+            ? aiAnalysis.matchedAllergens.join(', ') 
+            : null,
+          is_saved: false, // User can save it later
+        },
+        include: {
+          product: true,
+        }
+      });
+
+      // 5. Transform dan return hasil
+      return this.transformScanResult(scanResult);
+
+    } catch (error) {
+      console.error('Error in processBarcodeScan:', error);
+      
+      if (error instanceof Error) {
+        throw new Error(`Barcode scan failed: ${error.message}`);
+      }
+      
+      throw new Error('Unknown error occurred during barcode scan');
+    }
+  }
+
+  /**
+   * Memproses scan gambar produk (OCR fallback)
+   */
+  async processImageScan(
+    imageUrl: string, 
+    userId: number, 
+    productId?: number
+  ): Promise<ScanResult> {
+    try {
+      // 1. Ambil daftar alergi pengguna
+      const userAllergies = await this.getUserAllergies(userId);
+
+      // 2. Analisis gambar menggunakan AI
+      const aiAnalysis = await aiService.analyzeProductImage(imageUrl, userAllergies);
+
+      // 3. Tentukan produk yang akan digunakan
+      let product;
+      if (productId) {
+        // Jika productId disediakan, gunakan produk yang sudah ada
+        product = await productService.findProductById(productId);
+      } else {
+        // Jika tidak ada productId, buat produk baru dengan data minimal
+        product = await prisma.product.create({
+          data: {
+            barcode: `IMG_${Date.now()}_${userId}`, // Generate unique barcode for image scans
+            name: 'Product from Image Scan',
+            image_url: imageUrl,
+            nutritional_score: 'N/A',
+            ingredients: 'Extracted from image', // Could be enhanced to extract actual ingredients
+          }
+        });
+      }
+
+      // 4. Simpan hasil scan ke database
+      const scanResult = await prisma.product_scan.create({
+        data: {
+          user_id: userId,
+          product_id: product.id,
+          scan_date: new Date(),
+          risk_level: aiAnalysis.riskLevel,
+          risk_explanation: aiAnalysis.reasoning,
+          matched_allergens: aiAnalysis.matchedAllergens.length > 0 
+            ? aiAnalysis.matchedAllergens.join(', ') 
+            : null,
+          is_saved: false,
+        },
+        include: {
+          product: true,
+        }
+      });
+
+      // 5. Transform dan return hasil
+      return this.transformScanResult(scanResult);
+
+    } catch (error) {
+      console.error('Error in processImageScan:', error);
+      
+      if (error instanceof Error) {
+        throw new Error(`Image scan failed: ${error.message}`);
+      }
+      
+      throw new Error('Unknown error occurred during image scan');
+    }
+  }
+
+  /**
+   * Menyimpan hasil scan (toggle save status)
+   */
+  async toggleSaveScan(scanId: number, userId: number): Promise<ScanResult> {
+    try {
+      // Verify ownership
+      const existingScan = await prisma.product_scan.findFirst({
+        where: {
+          id: scanId,
+          user_id: userId,
+        }
+      });
+
+      if (!existingScan) {
+        throw new Error('Scan not found or access denied');
+      }
+
+      // Toggle save status
+      const updatedScan = await prisma.product_scan.update({
+        where: { id: scanId },
+        data: { is_saved: !existingScan.is_saved },
+        include: {
+          product: true,
+        }
+      });
+
+      return this.transformScanResult(updatedScan);
+
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred while toggling scan save status');
+    }
+  }
+
+  /**
+   * Mendapatkan riwayat scan pengguna
+   */
+  async getUserScanHistory(
+    userId: number, 
+    options: {
+      limit?: number;
+      offset?: number;
+      savedOnly?: boolean;
+    } = {}
+  ): Promise<ScanResult[]> {
+    try {
+      const { limit = 20, offset = 0, savedOnly = false } = options;
+
+      const scans = await prisma.product_scan.findMany({
+        where: {
+          user_id: userId,
+          ...(savedOnly && { is_saved: true }),
+        },
+        include: {
+          product: true,
+        },
+        orderBy: {
+          scan_date: 'desc',
+        },
+        take: limit,
+        skip: offset,
+      });
+
+      return scans.map(scan => this.transformScanResult(scan));
+
+    } catch (error) {
+      console.error('Error in getUserScanHistory:', error);
+      
+      if (error instanceof Error) {
+        throw new Error(`Failed to get scan history: ${error.message}`);
+      }
+      
+      throw new Error('Unknown error occurred while fetching scan history');
+    }
+  }
+
+  /**
+   * Helper: Mendapatkan daftar alergi pengguna
+   */
+  private async getUserAllergies(userId: number): Promise<string[]> {
+    try {
+      const userAllergies = await prisma.user_allergen.findMany({
+        where: { user_id: userId },
+        include: {
+          allergen: true,
+        }
+      });
+
+      return userAllergies.map(ua => ua.allergen.name);
+
+    } catch (error) {
+      console.error('Error fetching user allergies:', error);
+      // Return empty array if error, so scan can continue
+      return [];
+    }
+  }
+
+  /**
+   * Helper: Transform database result ke format yang konsisten
+   */
+  private transformScanResult(scanData: any): ScanResult {
+    return {
+      id: scanData.id,
+      userId: scanData.user_id,
+      productId: scanData.product_id,
+      scanDate: scanData.scan_date,
+      riskLevel: scanData.risk_level,
+      riskExplanation: scanData.risk_explanation,
+      matchedAllergens: scanData.matched_allergens,
+      isSaved: scanData.is_saved,
+      product: {
+        id: scanData.product.id,
+        barcode: scanData.product.barcode,
+        name: scanData.product.name,
+        imageUrl: scanData.product.image_url,
+        ingredients: scanData.product.ingredients,
+      }
+    };
+  }
+}
+
+export default new ScanService();
+
+
