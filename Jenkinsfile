@@ -11,7 +11,7 @@ pipeline {
         stage('Setup Env Vars') {
             steps {
                 withCredentials([
-                    sshUserPrivateKey(credentialsId: 'vps_key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
+                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
                     string(credentialsId: 'vps-host', variable: 'VPS_HOST')
                 ]) {
                     script {
@@ -35,6 +35,7 @@ pipeline {
                 sh '''
                     echo "✅ Commit yang sedang dideploy:"
                     git log -1 --pretty=format:"%h - %an: %s"
+                    
                 '''
             }
         }
@@ -94,7 +95,7 @@ pipeline {
             }
             steps {
                 withCredentials([
-                    sshUserPrivateKey(credentialsId: 'vps_key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
+                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
                     string(credentialsId: 'vps-host', variable: 'VPS_HOST'),
                     file(credentialsId: 'allertify-env', variable: 'ENV_FILE')
                 ]) {
@@ -128,7 +129,7 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 withCredentials([
-                    sshUserPrivateKey(credentialsId: 'vps_key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
+                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
                     string(credentialsId: 'vps-host', variable: 'VPS_HOST')
                 ]) {
                     sh '''#!/bin/bash
