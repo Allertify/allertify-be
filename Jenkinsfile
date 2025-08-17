@@ -14,10 +14,10 @@ pipeline {
                     sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
                     string(credentialsId: 'vps-host', variable: 'VPS_HOST')
                 ]) {
-                    script {
-                         env.SSH_USER = SSH_USER
-                         env.SSH_KEY = SSH_KEY
-                         env.VPS_HOST = VPS_HOST
+                                        script {
+                        env.SSH_USER = 'root'  // Hardcode username jadi root
+                        env.SSH_KEY = SSH_KEY
+                        env.VPS_HOST = VPS_HOST
                     }
                 }
             }
