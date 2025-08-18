@@ -70,11 +70,11 @@ pipeline {
         // }
 
         stage('Build Docker Image') {
-            when {
-                anyOf {
-                    branch 'arvan'
-                }
-            }
+            // when {
+            //     anyOf {
+            //         branch 'arvan'
+            //     }
+            // }
             steps {
                 echo '🐳 Building Docker image...'
                 script {
@@ -88,11 +88,11 @@ pipeline {
         }
 
         stage('Deploy to VPS') {
-            when {
-                anyOf {
-                    branch 'arvan'
-                }
-            }
+            // when {
+            //     anyOf {
+            //         branch 'arvan'
+            //     }
+            // }
             steps {
                 withCredentials([
                     sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
