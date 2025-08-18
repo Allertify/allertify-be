@@ -28,10 +28,24 @@ model user {
 
   // Relations
   emergency_contacts emergency_contact[]
-  subscriptions      subscription[]
-  user_allegens      user_allergen[]
-  product_reports    product_report[]
-  product_scans      product_scan[]
+  subscriptions       subscription[]
+  user_allegens       user_allergen[]
+  product_reports     product_report[]
+  product_scans       product_scan[]
+  email_verifications email_verification[]
+}
+
+model email_verification {
+  id               Int        @id @default(autoincrement())
+  user_id          Int 
+  otp_code         String     @db.VarChar(6)
+  otp_code_expired DateTime
+  usedAt           DateTime?
+  createdAt        DateTime   @default(now())
+
+  // Relations
+  user  user  @relation(fields: [user_id], references: [id])
+  @@index([user_id])
 }
 
 model allergen {
