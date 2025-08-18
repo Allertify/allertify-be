@@ -1,19 +1,17 @@
 #!/bin/sh
+set -e
 
-echo "🚀 Starting Allertify Backend..."
-
-# Wait for database to be ready
-echo "⏳ Waiting for database to be ready..."
+echo "⏳ Waiting DB..."
 sleep 3
 
-# Generate Prisma client with proper binary targets
-echo "🔧 Generating Prisma client..."
+echo "🔧 Prisma generate..."
 npx prisma generate
 
-# Run migrations
-echo "🔄 Running database migrations..."
+echo "🔄 Migrate deploy..."
 npx prisma migrate deploy
 
-# Start the application
-echo "🎯 Starting application..."
+echo "🌱 Seeding (idempotent)..."
+npm run -s prisma:seed || npx prisma db seed || true
+
+echo "🚀 Starting app..."
 exec node dist/index.js
