@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2"
 import { date } from "joi";
 import jwt from "jsonwebtoken"
+import { sendOTPEmail } from "../utils/mailer";
 
 const prisma = new PrismaClient();
 
@@ -58,7 +59,10 @@ export async function createUser(input: {
         },
     });
 
-    console.log('[OTP] send to ${email}: ${otp} (valid until ${otpExpired.toISOString()})');
+    //send otp to email
+    await sendOTPEmail(email, otp);
+
+    console.log(`[OTP] send to ${email}: ${otp} (valid until ${otpExpired.toISOString()})`);
 
     return { status: existing? "OTP_RESENT" as const : "REGISTERED" as const};
 
