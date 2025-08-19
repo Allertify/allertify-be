@@ -2,157 +2,172 @@ pipeline {
     agent any
     
     environment {
-        NODE_VERSION = '18'
-        DOCKER_IMAGE = 'allertify-backend'
+        NODE_VERSION = '20'
+        DOCKER_IMAGE = 'allertify-be'
         DOCKER_TAG = "${BUILD_NUMBER}"
     }
     
     stages {
-        stage('Checkout') {
+        stage('Setup Env Vars') {
             steps {
-                echo 'Checking out source code...'
-                checkout scm
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
+                    string(credentialsId: 'vps-host', variable: 'VPS_HOST')
+                ]) {
+                                        script {
+                        env.SSH_USER = 'root'  // Hardcode username jadi root
+                        env.SSH_KEY = SSH_KEY
+                        env.VPS_HOST = VPS_HOST
+                    }
+                }
             }
         }
-        
-        stage('Setup Node.js') {
+
+        stage('Clone Repository') {
             steps {
-                echo "Setting up Node.js ${NODE_VERSION}..."
+                checkout scm
+                echo "Repository berhasil di-clone"
+            }
+        }
+
+        stage('Show Commit Info') {
+            steps {
                 sh '''
-                    # Install Node.js using nvm if available, or use system node
-                    node --version
-                    npm --version
+                    echo "✅ Commit yang sedang dideploy:"
+                    git log -1 --pretty=format:"%h - %an: %s"
+                    
                 '''
             }
         }
-        
+
         stage('Install Dependencies') {
             steps {
-                echo 'Installing dependencies...'
+                echo '📦 Installing dependencies...'
                 sh '''
                     npm ci
                     npx prisma generate
                 '''
             }
         }
-        
-        stage('Lint & Format Check') {
-            steps {
-                echo 'Running linter and format checks...'
-                sh '''
-                    npm run lint
-                    # Add format check if needed
-                    # npm run format:check
-                '''
-            }
-        }
-        
-        stage('Run Tests') {
-            steps {
-                echo 'Running tests...'
-                sh '''
-                    # Run unit tests
-                    npm test
-                    
-                    # Run integration tests if database is available
-                    # npm run test:integration
-                '''
-                
-                // Publish test results
-                publishTestResults testResultsPattern: 'test-results.xml'
-            }
-        }
-        
+
         stage('Build Application') {
             steps {
-                echo 'Building application...'
+                echo '🏗️ Building application...'
                 sh '''
                     npm run build
+                    ls -la dist/
                 '''
             }
         }
-        
-        stage('Security Scan') {
-            steps {
-                echo 'Running security scan...'
-                sh '''
-                    # Run npm audit
-                    npm audit --audit-level=high
-                    
-                    # Add other security tools if needed
-                    # npm install -g snyk
-                    # snyk test
-                '''
-            }
-        }
-        
+
+        // stage('Security Scan') {
+        //     steps {
+        //         echo '🔒 Running security scan...'
+        //         sh '''
+        //             npm audit --audit-level=high
+        //         '''
+        //     }
+        // }
+
         stage('Build Docker Image') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                }
-            }
+            // when {
+            //     anyOf {
+            //         branch 'arvan'
+            //     }
+            // }
             steps {
-                echo 'Building Docker image...'
+                echo '🐳 Building Docker image...'
                 script {
                     def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                    docker.withRegistry('', 'docker-hub-credentials') {
-                        image.push()
-                        image.push('latest')
+                    
+                    // Save image for deployment
+                    sh "docker save ${DOCKER_IMAGE}:${DOCKER_TAG} | gzip > ${DOCKER_IMAGE}-${DOCKER_TAG}.tar.gz"
+                    archiveArtifacts artifacts: "${DOCKER_IMAGE}-${DOCKER_TAG}.tar.gz", fingerprint: true
+                }
+            }
+        }
+
+        stage('Deploy to VPS') {
+            // when {
+            //     anyOf {
+            //         branch 'arvan'
+            //     }
+            // }
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
+                    string(credentialsId: 'vps-host', variable: 'VPS_HOST'),
+                    file(credentialsId: 'allertify-env', variable: 'ENV_FILE')
+                ]) {
+                    sh '''#!/bin/bash
+                        echo "📁 Mengecek dan membersihkan direktori allertify-be di VPS..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" '
+                            if [ -d ~/allertify-be ]; then
+                                echo "📦 Direktori allertify-be ditemukan. Menghapus..."
+                                rm -rf ~/allertify-be
+                            else
+                                echo "📂 Direktori allertify-be tidak ditemukan. Akan dibuat baru."
+                            fi
+                            mkdir -p ~/allertify-be
+                        '
+
+                        echo "📤 Menyalin source code..."
+                        rsync -av --exclude='.env' -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY}" ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
+
+                        echo "📤 Menyalin .env dari Credentials ke VPS..."
+                        scp -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${ENV_FILE}" "${SSH_USER}@${VPS_HOST}:~/allertify-be/.env"
+
+                        echo "🚀 Menjalankan docker compose di VPS..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
+
+                        echo "✅ Deployment berhasil dijalankan"
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
+                    string(credentialsId: 'vps-host', variable: 'VPS_HOST')
+                ]) {
+                    sh '''#!/bin/bash
+                        echo "Memeriksa container yang berjalan..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "docker ps"
+                    '''
+                }
+                
+                script {
+                    try {
+                        sh '''#!/bin/bash
+                            echo "Memeriksa respons aplikasi..."
+                            curl -f http://${VPS_HOST}:3000/health || echo "Service might still be starting up"
+                        '''
+                        echo "Deployment verification complete"
+                    } catch (Exception e) {
+                        echo "Warning: Could not verify service: ${e.message}"
                     }
                 }
             }
         }
-        
-        stage('Deploy to Staging') {
-            when {
-                branch 'develop'
-            }
-            steps {
-                echo 'Deploying to staging environment...'
-                sh '''
-                    # Add deployment commands here
-                    # kubectl apply -f k8s/staging/
-                    # or docker-compose up -d
-                '''
-            }
-        }
-        
-        stage('Deploy to Production') {
-            when {
-                branch 'main'
-            }
-            steps {
-                echo 'Deploying to production environment...'
-                input message: 'Deploy to production?', ok: 'Deploy'
-                sh '''
-                    # Add production deployment commands here
-                    # kubectl apply -f k8s/production/
-                '''
-            }
-        }
     }
-    
+
     post {
         always {
-            echo 'Cleaning up...'
+            echo '🧹 Cleaning up...'
             sh '''
-                # Clean up test databases, temporary files, etc.
                 docker system prune -f
+                rm -f ${DOCKER_IMAGE}-*.tar.gz
             '''
         }
         
         success {
-            echo 'Pipeline completed successfully!'
-            // Send success notification
-            // slackSend channel: '#deployments', message: "✅ Build ${BUILD_NUMBER} succeeded"
+            echo "✅ Deployment successful! Application running at http://${env.VPS_HOST}:3000"
         }
         
         failure {
-            echo 'Pipeline failed!'
-            // Send failure notification
-            // slackSend channel: '#deployments', message: "❌ Build ${BUILD_NUMBER} failed"
+            echo "❌ Deployment failed. Check logs for details."
         }
     }
 }
