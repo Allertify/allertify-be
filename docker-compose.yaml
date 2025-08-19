@@ -48,6 +48,9 @@ services:
       JWT_ACCESS_SECRET: 4lL3rT1FFy_BE
       JWT_REFRESH_SECRET: 4lL3rT1FFy_BE
       REDIS_URL: redis://redis:6379
+      CLOUDINARY_CLOUD_NAME: dvlsclorg
+      CLOUDINARY_API_KEY: 726327219123868
+      CLOUDINARY_API_SECRET: **********
     ports:
       - "127.0.0.1:3109:3000"
     depends_on:
