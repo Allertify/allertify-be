@@ -17,3 +17,8 @@ export const otpSchema = Joi.object({
     email: Joi.string().trim().lowercase().email().max(100).required(),
     otp: Joi.string().length(6).pattern(/^\d{6}$/).required(),
 })
+
+export const loginSchema = Joi.object({
+    email: Joi.string().trim().lowercase().email().max(100).required(),
+    password: Joi.string().min(8).max(255).required(),
+});

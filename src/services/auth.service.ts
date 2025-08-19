@@ -138,3 +138,51 @@ export async function verifyOtpAndIssueToken(input: {
         },
     };
 }
+
+export async function loginUser(input: { email: string; password: string }) {
+    const email = input.email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    //avoid user enumeration
+    if(!user){
+        return { ok: false as const, reason: "INVALID_CREDENTIALS" as const};
+    }
+    if(!user.is_verified){
+        return { ok: false as const, reason: "USER_NOT_VERIFIED" as const};
+    }
+    
+    const passwordOk = await argon2.verify(user.password, input.password);
+    if(!passwordOk){
+        return { ok: false as const, reason: "INVALID_CREDENTIALS" as const};
+    }
+    
+    const accessSecret = process.env.JWT_ACCESS_SECRET;
+    if(!accessSecret){
+        throw Error("JWT_ACCESS_SECRET not set in env");
+    }
+    
+    const accessToken = jwt.sign(
+        { sub: user.id, email: user.email, role: user.role},
+        accessSecret,
+        { expiresIn: "7d"}
+    );
+
+    //update last_login
+    try{
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { last_login: new Date()},
+        });
+    }catch{}
+    return {
+        ok: true as const,
+        accessToken,
+        user: {
+            id: user.id,
+            full_name: user.full_name,
+            email: user.email,
+            is_verified: user.is_verified,
+            role: user.role,
+        },
+    };
+}

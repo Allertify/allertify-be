@@ -8,6 +8,7 @@ import rateLimit  from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from "./routes/auth.routes"
+import { errorHandler } from './middlewares/error.middleware';
 
 
 
@@ -35,8 +36,9 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+
+app.use(express.json({limit: '10mb'}));
+app.use(express.urlencoded({extended: true}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -71,6 +73,9 @@ app.use((req, res, next) => {
 // API Routes
 app.use('/api/v1/scans', scanRoutes);
 app.use("/api/v1/auth", authRoutes);
+
+//error handler
+app.use(errorHandler);
 
 
 

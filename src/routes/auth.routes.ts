@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerController, verifyOtpController } from "../controllers/auth.controller";
+import { registerController, verifyOtpController, loginController } from "../controllers/auth.controller";
 
 const router = Router();
 
@@ -7,5 +7,7 @@ const router = Router();
 router.post("/register", registerController);
 // endpoint otp
 router.post("/otp", verifyOtpController);
+// endpoint login
+router.post("/login", loginController);
 
 export default router;
