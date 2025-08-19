@@ -320,18 +320,25 @@ export class ScanService {
 
       // 5. Buat atau update produk berdasarkan analisis gambar
       let product;
+      
+      // Extract product info dari AI analysis jika tersedia
+      const productInfo = this.extractProductInfoFromAI(aiAnalysis);
+      
       if (productName) {
-        // Jika ada nama produk, cari atau buat produk
-        product = await productService.findOrCreateProductByName(productName);
+        // Jika ada nama produk, cari atau buat produk dengan data AI
+        const options: any = { imageUrl: uploadResult.secureUrl };
+        if (productInfo.ingredients) options.ingredients = productInfo.ingredients;
+        if (productInfo.barcode) options.barcode = productInfo.barcode;
+        
+        product = await productService.findOrCreateProductByName(productName, options);
       } else {
-        // Jika tidak ada nama, buat produk dengan nama default
-        product = await productService.findOrCreateProductByName('Product from Image Scan');
-      }
-
-      // Update product image URL jika belum ada
-      if (!product.image_url) {
-        await productService.updateProductImage(product.id, uploadResult.secureUrl);
-        product.image_url = uploadResult.secureUrl;
+        // Jika tidak ada nama, gunakan nama dari AI atau default
+        const productNameFromAI = productInfo.name || 'Product from Image Scan';
+        const options: any = { imageUrl: uploadResult.secureUrl };
+        if (productInfo.ingredients) options.ingredients = productInfo.ingredients;
+        if (productInfo.barcode) options.barcode = productInfo.barcode;
+        
+        product = await productService.findOrCreateProductByName(productNameFromAI, options);
       }
 
       // 6. Simpan hasil scan ke database
@@ -376,6 +383,19 @@ export class ScanService {
       
       throw new Error('Unknown error occurred during image upload scan');
     }
+  }
+
+  /**
+   * Helper: Extract product info dari AI analysis
+   */
+  private extractProductInfoFromAI(aiAnalysis: any) {
+    // TODO: Implement AI response parsing untuk extract product info
+ 
+    return {
+      name: undefined,
+      ingredients: undefined,
+      barcode: undefined
+    };
   }
 
   /**

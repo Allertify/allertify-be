@@ -9,7 +9,7 @@ $env:HARDCODED_USER_ID = "1"
 $env:HARDCODED_USER_EMAIL = "test@example.com"
 $env:HARDCODED_USER_ROLE = "user"
 $env:HARDCODED_ALLERGENS = "gluten,lactose,nuts,shellfish,eggs"
-$env:BYPASS_AI = "true"
+$env:BYPASS_AI = "false"
 
 Write-Host "✅ Environment variables set:" -ForegroundColor Green
 Write-Host "   BYPASS_AUTH: $env:BYPASS_AUTH" -ForegroundColor Yellow

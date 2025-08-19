@@ -13,7 +13,7 @@ export type AIEvaluation = z.infer<typeof AIEvaluationSchema>;
 
 export class AIService {
   private geminiModel = google('gemini-2.5-flash');
-  private geminiVisionModel = google('gemini-2.5-pro-vision');
+  private geminiVisionModel = google('gemini-2.5-flash');
 
   /**
    * Mock AI response untuk development/testing 
@@ -155,7 +155,7 @@ Provide a thorough but concise reasoning that explains your decision.
       }
 
       // Bypass AI jika environment variable BYPASS_AI = true
-      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+      if (process.env.BYPASS_AI === 'true') {
         return {
           riskLevel: 'CAUTION',
           matchedAllergens: [],
@@ -214,7 +214,7 @@ Provide a thorough but concise reasoning that explains your decision.
       console.error('Error in analyzeProductImage:', error);
       
       // Fallback ke mock response jika AI gagal
-      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+      if (process.env.BYPASS_AI === 'true' ) {
         console.log('🔄 AI failed, falling back to mock response');
         return {
           riskLevel: 'CAUTION',
@@ -253,7 +253,7 @@ Provide a thorough but concise reasoning that explains your decision.
       }
 
       // Bypass AI jika environment variable BYPASS_AI = true
-      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+      if (process.env.BYPASS_AI === 'true' ) {
         return {
           riskLevel: 'CAUTION',
           matchedAllergens: [],
@@ -314,7 +314,7 @@ Provide a thorough but concise reasoning that explains your decision.
       console.error('Error in analyzeUploadedImage:', error);
       
       // Fallback ke mock response jika AI gagal
-      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+      if (process.env.BYPASS_AI === 'true') {
         console.log('🔄 AI failed, falling back to mock response');
         return {
           riskLevel: 'CAUTION',

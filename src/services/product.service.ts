@@ -167,7 +167,14 @@ export class ProductService {
   /**
    * Mencari atau buat produk berdasarkan nama
    */
-  async findOrCreateProductByName(name: string) {
+  async findOrCreateProductByName(
+    name: string, 
+    options?: {
+      ingredients?: string;
+      barcode?: string;
+      imageUrl?: string;
+    }
+  ) {
     try {
       // Coba cari produk dengan nama yang sama
       const existingProduct = await prisma.product.findFirst({
@@ -180,17 +187,26 @@ export class ProductService {
       });
 
       if (existingProduct) {
+        // Update existing product jika ada data baru
+        if (options?.ingredients && existingProduct.ingredients === 'Product created from name') {
+          await this.updateProduct(existingProduct.id, { ingredients: options.ingredients });
+          existingProduct.ingredients = options.ingredients;
+        }
+        if (options?.imageUrl && !existingProduct.image_url) {
+          await this.updateProductImage(existingProduct.id, options.imageUrl);
+          existingProduct.image_url = options.imageUrl;
+        }
         return existingProduct;
       }
 
-      // Jika tidak ada, buat produk baru
+      // Jika tidak ada, buat produk baru dengan data yang lebih baik
       const product = await prisma.product.create({
         data: {
-          barcode: `NAME_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          barcode: options?.barcode || `NAME_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: name,
-          image_url: '',
+          image_url: options?.imageUrl || '',
           nutritional_score: 'N/A',
-          ingredients: 'Product created from name',
+          ingredients: options?.ingredients || 'Product created from name',
         }
       });
 
