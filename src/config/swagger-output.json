@@ -1,0 +1,341 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Allertify API",
+    "description": "Backend API untuk aplikasi deteksi alergen makanan",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Allertify Team",
+      "email": "admin@allertify.com"
+    }
+  },
+  "host": "allertify.ciet.site",
+  "basePath": "/api/v1",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "JWT token dengan format: Bearer <token>"
+    }
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "example": 1
+        },
+        "email": {
+          "type": "string",
+          "example": "user@example.com"
+        },
+        "full_name": {
+          "type": "string",
+          "example": "John Doe"
+        },
+        "phone_number": {
+          "type": "string",
+          "example": "+6281234567890"
+        },
+        "is_verified": {
+          "type": "boolean",
+          "example": false
+        },
+        "role": {
+          "type": "number",
+          "example": 0
+        },
+        "createdAt": {
+          "type": "string",
+          "example": "2024-01-01T00:00:00.000Z"
+        },
+        "updatedAt": {
+          "type": "string",
+          "example": "2024-01-01T00:00:00.000Z"
+        }
+      }
+    },
+    "UserCreate": {
+      "type": "object",
+      "properties": {
+        "full_name": {
+          "type": "string",
+          "example": "John Doe"
+        },
+        "email": {
+          "type": "string",
+          "example": "user@example.com"
+        },
+        "password": {
+          "type": "string",
+          "example": "password123"
+        },
+        "phone_number": {
+          "type": "string",
+          "example": "+6281234567890"
+        }
+      }
+    },
+    "UserLogin": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "example": "user@example.com"
+        },
+        "password": {
+          "type": "string",
+          "example": "password123"
+        }
+      }
+    },
+    "UserVerifyOTP": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "example": "user@example.com"
+        },
+        "otp": {
+          "type": "string",
+          "example": "123456"
+        }
+      }
+    },
+    "Product": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "example": 1
+        },
+        "barcode": {
+          "type": "string",
+          "example": "8991002122017"
+        },
+        "name": {
+          "type": "string",
+          "example": "Abc Kopi Susu"
+        },
+        "imageUrl": {
+          "type": "string",
+          "example": "https://example.com/image.jpg"
+        },
+        "ingredients": {
+          "type": "string",
+          "example": "RH-30"
+        },
+        "createdAt": {
+          "type": "string",
+          "example": "2024-01-01T00:00:00.000Z"
+        },
+        "updatedAt": {
+          "type": "string",
+          "example": "2024-01-01T00:00:00.000Z"
+        }
+      }
+    },
+    "ScanResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "example": 1
+        },
+        "userId": {
+          "type": "number",
+          "example": 1
+        },
+        "productId": {
+          "type": "number",
+          "example": 1
+        },
+        "scanDate": {
+          "type": "string",
+          "example": "2024-01-01T00:00:00.000Z"
+        },
+        "scanDateLocal": {
+          "type": "string",
+          "example": "2024-01-01T07:00:00.000+07:00"
+        },
+        "riskLevel": {
+          "type": "string",
+          "example": "SAFE"
+        },
+        "riskExplanation": {
+          "type": "string",
+          "example": "Product appears safe based on ingredient analysis."
+        },
+        "matchedAllergens": {},
+        "isSaved": {
+          "type": "boolean",
+          "example": false
+        },
+        "listType": {
+          "type": "string",
+          "example": "GREEN"
+        },
+        "product": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "number",
+              "example": 1
+            },
+            "barcode": {
+              "type": "string",
+              "example": "8991002122017"
+            },
+            "name": {
+              "type": "string",
+              "example": "Abc Kopi Susu"
+            },
+            "imageUrl": {
+              "type": "string",
+              "example": "https://example.com/image.jpg"
+            },
+            "ingredients": {
+              "type": "string",
+              "example": "RH-30"
+            }
+          }
+        },
+        "scanLimit": {
+          "type": "object",
+          "properties": {
+            "remainingScans": {
+              "type": "number",
+              "example": 99
+            },
+            "dailyLimit": {
+              "type": "number",
+              "example": 100
+            }
+          }
+        }
+      }
+    },
+    "ScanLimit": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "number",
+          "example": 1
+        },
+        "currentUsage": {
+          "type": "number",
+          "example": 1
+        },
+        "dailyLimit": {
+          "type": "number",
+          "example": 100
+        },
+        "remainingScans": {
+          "type": "number",
+          "example": 99
+        },
+        "isLimitExceeded": {
+          "type": "boolean",
+          "example": false
+        },
+        "canScan": {
+          "type": "boolean",
+          "example": true
+        }
+      }
+    },
+    "ProductPreference": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "example": 1
+        },
+        "user_id": {
+          "type": "number",
+          "example": 1
+        },
+        "product_id": {
+          "type": "number",
+          "example": 1
+        },
+        "list_type": {
+          "type": "string",
+          "example": "GREEN"
+        },
+        "createdAt": {
+          "type": "string",
+          "example": "2024-01-01T00:00:00.000Z"
+        },
+        "updatedAt": {
+          "type": "string",
+          "example": "2024-01-01T00:00:00.000Z"
+        }
+      }
+    },
+    "SuccessResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "example": "Operation completed successfully"
+        },
+        "data": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": false
+        },
+        "message": {
+          "type": "string",
+          "example": "Error message here"
+        },
+        "error": {
+          "type": "string",
+          "example": "Error details"
+        }
+      }
+    },
+    "Pagination": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "number",
+          "example": 20
+        },
+        "offset": {
+          "type": "number",
+          "example": 0
+        },
+        "total": {
+          "type": "number",
+          "example": 100
+        }
+      }
+    }
+  }
+}

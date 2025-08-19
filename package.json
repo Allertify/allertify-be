@@ -15,7 +15,10 @@
     "prisma:studio": "prisma studio",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "swagger": "npx swagger-autogen -i src/config/swagger.ts -o swagger-output.json",
+    "swagger:generate": "ts-node src/config/swagger.ts",
+    "swagger:watch": "nodemon --exec 'npm run swagger:generate' --watch src/routes --watch src/config/swagger.ts"
   },
   "keywords": [
     "allertify",
@@ -42,9 +45,11 @@
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "zod": "^3.22.4",
     "nodemailer": "^7.0.5",
-    "winston": "^3.11.0"
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.11.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -54,6 +59,7 @@
     "@types/node": "^24.2.1",
     "@types/nodemailer": "^7.0.0",
     "@types/supertest": "^2.0.16",
+    "@types/swagger-ui-express": "^4.1.8",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
     "eslint": "^8.57.1",
