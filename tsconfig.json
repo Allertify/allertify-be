@@ -43,7 +43,7 @@
     "skipLibCheck": true,
   },
   "include": [
-    "src/**/*"                 // ✅ Include semua files di src
+    "src/**/*"                 
   ],
   "exclude": [
     "node_modules",
