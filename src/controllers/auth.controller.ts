@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { createUser, verifyOtpAndIssueToken } from "../services/auth.service";
-import { registerSchema, otpSchema } from "../middlewares/auth.validation";
+import { createUser, verifyOtpAndIssueToken, loginUser } from "../services/auth.service";
+import { registerSchema, otpSchema, loginSchema } from "../middlewares/auth.validation";
+import asyncHandler from "../middlewares/asyncHandler";
 
 export const registerController = async (req: Request, res: Response) => {
     const { error, value } = registerSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
@@ -56,3 +57,40 @@ export async function verifyOtpController(req: Request, res: Response) {
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
+
+export const loginController = asyncHandler(async (req, res) => {
+    const { error, value } = loginSchema.validate(req.body, {
+        abortEarly: false,
+        stripUnknown: true,
+    });
+    if(error){
+        return res.status(400).json({
+            success: false,
+            message: "Validation error",
+            detail: error.details.map( d => d.message ),
+        });
+    }
+
+    const result = await loginUser(value);
+    if(!result.ok){
+        if(result.reason === "USER_NOT_VERIFIED"){
+            return res.status(403).json({
+                success: false,
+                message: "Account is not verified",
+            });
+        }
+        if(result.reason === "INVALID_CREDENTIALS"){
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password",
+            });
+        }
+        return res.status(401).json({ success: false, message: "Login failed"});
+    }
+    return res.status(200).json({
+        success: true,
+        message: "Login successful",
+        accessToken: result.accessToken,
+        user: result.user,
+    });
+});
