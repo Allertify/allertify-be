@@ -21,5 +21,5 @@ module.exports = {
     ],
     setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
     testTimeout: 30000,
-    maxWorkers: 1 
+    maxWorkers: 1 // Important for database tests
   };

@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -33,6 +33,20 @@ model user {
   product_reports    product_report[]
   product_scans      product_scan[]
   daily_scan_usages  daily_scan_usage[]
+  email_verifications email_verification[]
+}
+
+model email_verification {
+  id               Int        @id @default(autoincrement())
+  user_id          Int 
+  otp_code         String     @db.VarChar(6)
+  otp_code_expired DateTime
+  usedAt           DateTime?
+  createdAt        DateTime   @default(now())
+
+  // Relations
+  user  user  @relation(fields: [user_id], references: [id])
+  @@index([user_id])
 }
 
 model allergen {

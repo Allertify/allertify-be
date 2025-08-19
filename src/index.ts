@@ -1,12 +1,15 @@
-import express, { Express} from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
 
+import express, { Express} from 'express';
 // Import routes
 import scanRoutes from './routes/scan.route';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit  from 'express-rate-limit';
+import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
+import authRoutes from "./routes/auth.routes"
+
+
 
 dotenv.config();
 
