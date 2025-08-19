@@ -21,6 +21,7 @@ npm install
 1. Copy `env.example` to `.env`
 2. Configure your database and API keys
 3. For development without authentication, set `BYPASS_AUTH=true`
+4. Configure Cloudinary for image uploads (optional but recommended)
 
 ### Development Mode (Bypass Authentication)
 Untuk development/testing tanpa perlu setup authentication:
@@ -89,6 +90,7 @@ HARDCODED_ALLERGENS=gluten,lactose,nuts,shellfish,eggs
 - `GET /scans/limit` - Informasi daily scan limit pengguna
 - `POST /scans/barcode/:barcode` - Scan produk berdasarkan barcode
 - `POST /scans/image` - Scan produk berdasarkan gambar
+- `POST /scans/upload` - Upload dan scan gambar produk untuk analisis alergi
 - `PUT /scans/:scanId/save` - Toggle save status
 - `GET /scans/history` - Riwayat scan pengguna
 - `GET /scans/saved` - Scan yang disimpan
@@ -98,6 +100,23 @@ HARDCODED_ALLERGENS=gluten,lactose,nuts,shellfish,eggs
 - **Premium Plans**: Sesuai dengan tier plan yang dibeli
 - **Limit Reset**: Setiap hari jam 00:00
 - **Response**: Setiap scan akan return remaining scans dan daily limit
+
+## 🖼️ Image Upload & Analysis
+
+### Cloudinary Integration
+- **Image Upload**: Secure image upload to Cloudinary with automatic optimization
+- **AI Analysis**: Integration with Gemini Vision AI for ingredient analysis from images
+- **File Validation**: Automatic file type and size validation (max 10MB)
+- **Supported Formats**: JPEG, PNG, GIF, WebP, BMP, TIFF
+
+### Testing Cloudinary
+```bash
+# Test Cloudinary configuration
+node scripts/test-cloudinary.js
+```
+
+### Documentation
+For detailed information about the Cloudinary integration, see [CLOUDINARY_INTEGRATION.md](docs/CLOUDINARY_INTEGRATION.md)
 
 ## 🛠️ Development
 

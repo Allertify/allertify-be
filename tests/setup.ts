@@ -10,7 +10,7 @@ beforeAll(async () => {
   const prisma = new PrismaClient({
     datasources: {
       db: {
-        url: process.env.TEST_DATABASE_URL || 'postgresql://test:test@localhost:5432/allertify_test',
+        url: process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/allertify_test',
       },
     },
   });

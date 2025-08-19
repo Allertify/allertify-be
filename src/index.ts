@@ -1,10 +1,9 @@
-
-import express, { Express, Request, Response } from 'express';
+import express, { Express} from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit  from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 // Import routes
 import scanRoutes from './routes/scan.route';
@@ -18,31 +17,30 @@ const port = process.env.PORT || 3000;
 
 //security middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials:true
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+  }),
+);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  message: 'Too many requests, please try again later.'
+  message: 'Too many requests, please try again later.',
 });
 
 app.use(limiter);
 
-app.use(express.json({limit: '10mb'}));
-app.use(express.urlencoded({extended: true}));
-
-
-
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
@@ -57,11 +55,11 @@ app.use((req, res, next) => {
     headers: {
       'user-agent': req.headers['user-agent'],
       'content-type': req.headers['content-type'],
-      'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
+      authorization: req.headers.authorization ? 'Bearer ***' : 'None',
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
-  
+
   // Add request ID to response headers for debugging
   res.setHeader('X-Request-ID', requestId);
   next();
@@ -70,38 +68,7 @@ app.use((req, res, next) => {
 // API Routes
 app.use('/api/scans', scanRoutes);
 
-// 404 handler untuk semua routes yang tidak ditemukan
-// app.use('*', (req, res) => {
-//   const requestId = req.headers['x-request-id'] || 'unknown';
-//   console.log(`❌ [${requestId}] [404_NOT_FOUND] Route not found:`, {
-//     method: req.method,
-//     url: req.url,
-//     path: req.path,
-//     headers: {
-//       'user-agent': req.headers['user-agent'],
-//       'content-type': req.headers['content-type']
-//     },
-//     timestamp: new Date().toISOString()
-//   });
-  
-//   res.status(404).json({
-//     success: false,
-//     message: 'Route not found',
-//     error: {
-//       method: req.method,
-//       url: req.url,
-//       availableRoutes: [
-//         'GET /health',
-//         'GET /api/scans/limit',
-//         'POST /api/scans/barcode/:barcode',
-//         'POST /api/scans/image',
-//         'PUT /api/scans/:scanId/save',
-//         'GET /api/scans/history',
-//         'GET /api/scans/saved'
-//       ]
-//     }
-//   });
-// });
+
 
 app.listen(port, () => {
   console.log(`🚀 Allertify Backend Server running on port ${port}`);
@@ -111,6 +78,7 @@ app.listen(port, () => {
   console.log(`   • GET  /api/scans/limit`);
   console.log(`   • POST /api/scans/barcode/:barcode`);
   console.log(`   • POST /api/scans/image`);
+  console.log(`   • POST /api/scans/upload`);
   console.log(`   • PUT  /api/scans/:scanId/save`);
   console.log(`   • GET  /api/scans/history`);
   console.log(`   • GET  /api/scans/saved`);

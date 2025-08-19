@@ -71,6 +71,17 @@ export class ScanController {
     });
 
     try {
+      // Bypass auth untuk development/testing
+      if (process.env.BYPASS_AUTH === 'true') {
+        console.log(`🔓 [${requestId}] [SCAN_BARCODE] Bypass auth enabled, using hardcoded user`);
+        // Set hardcoded user data
+        req.user = {
+          userId: process.env.HARDCODED_USER_ID || '1',
+          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
+          role: process.env.HARDCODED_USER_ROLE || 'user'
+        };
+      }
+
       // Validasi parameter
       const { error: paramError, value: paramValue } = barcodeParamSchema.validate(req.params);
       if (paramError) {
@@ -165,6 +176,17 @@ export class ScanController {
     });
 
     try {
+      // Bypass auth untuk development/testing
+      if (process.env.BYPASS_AUTH === 'true') {
+        console.log(`🔓 [${requestId}] [SCAN_IMAGE] Bypass auth enabled, using hardcoded user`);
+        // Set hardcoded user data
+        req.user = {
+          userId: process.env.HARDCODED_USER_ID || '1',
+          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
+          role: process.env.HARDCODED_USER_ROLE || 'user'
+        };
+      }
+
       // Validasi body request
       const { error: bodyError, value: bodyValue } = imageScanSchema.validate(req.body);
       if (bodyError) {
@@ -244,6 +266,17 @@ export class ScanController {
    */
   toggleSaveScan = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // Bypass auth untuk development/testing
+      if (process.env.BYPASS_AUTH === 'true') {
+        console.log(`🔓 [TOGGLE_SAVE] Bypass auth enabled, using hardcoded user`);
+        // Set hardcoded user data
+        req.user = {
+          userId: process.env.HARDCODED_USER_ID || '1',
+          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
+          role: process.env.HARDCODED_USER_ROLE || 'user'
+        };
+      }
+
       const scanIdParam = req.params.scanId;
       
       if (!scanIdParam) {
@@ -308,6 +341,17 @@ export class ScanController {
     });
 
     try {
+      // Bypass auth untuk development/testing
+      if (process.env.BYPASS_AUTH === 'true') {
+        console.log(`🔓 [${requestId}] [SCAN_HISTORY] Bypass auth enabled, using hardcoded user`);
+        // Set hardcoded user data
+        req.user = {
+          userId: process.env.HARDCODED_USER_ID || '1',
+          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
+          role: process.env.HARDCODED_USER_ROLE || 'user'
+        };
+      }
+
       // Validasi query parameters
       const { error: queryError, value: queryValue } = scanHistoryQuerySchema.validate(req.query);
       if (queryError) {
@@ -407,6 +451,125 @@ export class ScanController {
   };
 
   /**
+   * POST /scans/upload
+   * Upload dan scan gambar produk untuk analisis alergi
+   */
+  uploadAndScanImage = async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
+    const requestId = Math.random().toString(36).substring(7);
+    
+    console.log(`📸 [${requestId}] [UPLOAD_SCAN] Request started:`, {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      headers: {
+        'user-agent': req.headers['user-agent'],
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      // Bypass auth untuk development/testing
+      if (process.env.BYPASS_AUTH === 'true') {
+        console.log(`🔓 [${requestId}] [UPLOAD_SCAN] Bypass auth enabled, using hardcoded user`);
+        // Set hardcoded user data
+        req.user = {
+          userId: process.env.HARDCODED_USER_ID || '1',
+          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
+          role: process.env.HARDCODED_USER_ROLE || 'user'
+        };
+      }
+
+      // Pastikan user sudah login
+      if (!req.user?.userId) {
+        console.log(`❌ [${requestId}] [UPLOAD_SCAN] Authentication failed: No user data`);
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+
+      // Validasi file upload
+      if (!req.file) {
+        console.log(`❌ [${requestId}] [UPLOAD_SCAN] No image file uploaded`);
+        return res.status(400).json({
+          success: false,
+          message: 'Image file is required'
+        });
+      }
+
+      // Validasi file type
+      if (!req.file.mimetype.startsWith('image/')) {
+        console.log(`❌ [${requestId}] [UPLOAD_SCAN] Invalid file type: ${req.file.mimetype}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Only image files are allowed'
+        });
+      }
+
+      const userId = parseInt(req.user.userId);
+      const productName = req.body.productName || undefined;
+
+      console.log(`✅ [${requestId}] [UPLOAD_SCAN] Validation passed:`, {
+        userId,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        fileType: req.file.mimetype,
+        productName
+      });
+
+      // Proses upload dan scan
+      console.log(`🔄 [${requestId}] [UPLOAD_SCAN] Calling scanService.processImageUpload...`);
+      const scanResult = await scanService.processImageUpload(
+        req.file.buffer,
+        userId,
+        productName
+      );
+      
+      console.log(`✅ [${requestId}] [UPLOAD_SCAN] Service call successful:`, {
+        scanResult: {
+          id: scanResult.id,
+          productId: scanResult.productId,
+          riskLevel: scanResult.riskLevel,
+          matchedAllergens: scanResult.matchedAllergens
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      const responseTime = Date.now() - startTime;
+      console.log(`🎯 [${requestId}] [UPLOAD_SCAN] Request completed successfully in ${responseTime}ms`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Image uploaded and analyzed successfully',
+        data: scanResult
+      });
+
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      console.error(`💥 [${requestId}] [UPLOAD_SCAN] Error occurred after ${responseTime}ms:`, {
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : error,
+        requestInfo: {
+          method: req.method,
+          url: req.url,
+          userId: req.user?.userId,
+          fileName: req.file?.originalname,
+          timestamp: new Date().toISOString()
+        }
+      });
+      next(error);
+    }
+  };
+
+  /**
    * GET /scans/limit
    * Mendapatkan informasi daily scan limit pengguna
    */
@@ -427,6 +590,17 @@ export class ScanController {
     });
 
     try {
+      // Bypass auth untuk development/testing
+      if (process.env.BYPASS_AUTH === 'true') {
+        console.log(`🔓 [${requestId}] [SCAN_LIMIT] Bypass auth enabled, using hardcoded user`);
+        // Set hardcoded user data
+        req.user = {
+          userId: process.env.HARDCODED_USER_ID || '1',
+          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
+          role: process.env.HARDCODED_USER_ROLE || 'user'
+        };
+      }
+
       // Pastikan user sudah login
       if (!req.user?.userId) {
         console.log(`❌ [${requestId}] [SCAN_LIMIT] Authentication failed: No user data`);

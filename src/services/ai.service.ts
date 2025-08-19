@@ -232,6 +232,106 @@ Provide a thorough but concise reasoning that explains your decision.
   }
 
   /**
+   * Menganalisis gambar produk yang diupload ke Cloudinary
+   */
+  async analyzeUploadedImage(
+    cloudinaryUrl: string,
+    userAllergies: string[]
+  ): Promise<AIEvaluation> {
+    try {
+      if (!cloudinaryUrl || cloudinaryUrl.trim() === '') {
+        throw new Error('Cloudinary URL cannot be empty');
+      }
+
+      if (!userAllergies || userAllergies.length === 0) {
+        // Jika user tidak punya alergi, kembalikan hasil SAFE
+        return {
+          riskLevel: 'SAFE',
+          matchedAllergens: [],
+          reasoning: 'No allergies specified by user, product is considered safe.'
+        };
+      }
+
+      // Bypass AI jika environment variable BYPASS_AI = true
+      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+        return {
+          riskLevel: 'CAUTION',
+          matchedAllergens: [],
+          reasoning: '🤖 AI BYPASSED - Image analysis requires AI service. Set BYPASS_AI=false to enable real AI analysis.'
+        };
+      }
+
+      const prompt = `
+You are an expert nutritionist and allergy specialist. Your task is to analyze food product images and assess allergy risks.
+
+USER ALLERGIES: ${userAllergies.join(', ')}
+
+Please analyze the product image above and determine:
+1. Risk level based on the presence of user's allergens
+2. Which specific allergens from the user's list are found in the product
+3. Detailed reasoning for your assessment
+
+Look for:
+- Ingredient lists on packaging
+- Allergy warnings (e.g., "Contains: milk, nuts")
+- Cross-contamination notices
+- Product name and brand information
+- Nutritional information panels
+- Any text visible on the packaging
+
+RISK LEVELS:
+- SAFE: No allergens detected, safe for consumption
+- CAUTION: Possible cross-contamination or unclear information that might contain allergens
+- RISKY: Direct presence of user's allergens, should avoid
+
+Provide a thorough but concise reasoning that explains your decision.
+      `;
+
+      const result = await generateObject({
+        model: this.geminiVisionModel,
+        schema: AIEvaluationSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image',
+                image: cloudinaryUrl
+              }
+            ]
+          }
+        ],
+        temperature: 0.1,
+      });
+
+      return result.object;
+
+    } catch (error) {
+      console.error('Error in analyzeUploadedImage:', error);
+      
+      // Fallback ke mock response jika AI gagal
+      if (process.env.BYPASS_AI === 'true' || process.env.BYPASS_AUTH === 'true') {
+        console.log('🔄 AI failed, falling back to mock response');
+        return {
+          riskLevel: 'CAUTION',
+          matchedAllergens: [],
+          reasoning: '🤖 AI BYPASSED - Image analysis failed. Set BYPASS_AI=false to enable real AI analysis.'
+        };
+      }
+      
+      if (error instanceof Error) {
+        throw new Error(`AI uploaded image analysis failed: ${error.message}`);
+      }
+      
+      throw new Error('Unknown error occurred during AI uploaded image analysis');
+    }
+  }
+
+  /**
    * Menganalisis teks bahan dengan konteks tambahan (brand, product name, dll)
    */
   async analyzeIngredientsWithContext(

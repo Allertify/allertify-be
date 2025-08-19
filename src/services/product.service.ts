@@ -77,13 +77,13 @@ export class ProductService {
     } catch (error: unknown) {
       // Enhanced error handling
       if (axios.isAxiosError(error)) {
-        // if (error.response?.status === 404) {
-        //   throw new Error(`Product with barcode ${barcode} not found in Open Food Facts database`);
-        // }
-        // if (error.code === 'ECONNABORTED') {
-        //   throw new Error('Request to Open Food Facts API timed out');
-        // }
-        // throw new Error(`Open Food Facts API error: ${error.message}`);
+        if (error.response?.status === 404) {
+          throw new Error(`Product with barcode ${barcode} not found in Open Food Facts database`);
+        }
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Request to Open Food Facts API timed out');
+        }
+        throw new Error(`Open Food Facts API error: ${error.message}`);
       }
       
       if (error instanceof Error) {
@@ -161,6 +161,64 @@ export class ProductService {
         throw error;
       }
       throw new Error('Unknown error occurred while creating minimal product');
+    }
+  }
+
+  /**
+   * Mencari atau buat produk berdasarkan nama
+   */
+  async findOrCreateProductByName(name: string) {
+    try {
+      // Coba cari produk dengan nama yang sama
+      const existingProduct = await prisma.product.findFirst({
+        where: { 
+          name: {
+            contains: name,
+            mode: 'insensitive'
+          }
+        }
+      });
+
+      if (existingProduct) {
+        return existingProduct;
+      }
+
+      // Jika tidak ada, buat produk baru
+      const product = await prisma.product.create({
+        data: {
+          barcode: `NAME_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: name,
+          image_url: '',
+          nutritional_score: 'N/A',
+          ingredients: 'Product created from name',
+        }
+      });
+
+      return product;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred while finding or creating product by name');
+    }
+  }
+
+  /**
+   * Update image URL produk
+   */
+  async updateProductImage(id: number, imageUrl: string) {
+    try {
+      const updatedProduct = await prisma.product.update({
+        where: { id },
+        data: { image_url: imageUrl }
+      });
+
+      return updatedProduct;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred while updating product image');
     }
   }
 }
