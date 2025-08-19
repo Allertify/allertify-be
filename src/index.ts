@@ -69,7 +69,9 @@ app.use((req, res, next) => {
 });
 
 // API Routes
-app.use('/api/scans', scanRoutes);
+app.use('/api/v1/scans', scanRoutes);
+app.use("/api/v1/auth", authRoutes);
+
 
 
 

@@ -44,7 +44,8 @@ const imageScanSchema = Joi.object({
 const scanHistoryQuerySchema = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(20),
   offset: Joi.number().integer().min(0).default(0),
-  savedOnly: Joi.boolean().default(false)
+  savedOnly: Joi.boolean().default(false),
+  uniqueByProduct: Joi.boolean().default(false),
 });
 
 export class ScanController {
@@ -376,7 +377,7 @@ export class ScanController {
       }
 
       const userId = parseInt(req.user.userId);
-      const { limit, offset, savedOnly } = queryValue;
+      const { limit, offset, savedOnly, uniqueByProduct } = queryValue;
 
       console.log(`✅ [${requestId}] [SCAN_HISTORY] Validation passed:`, {
         userId,
@@ -392,7 +393,8 @@ export class ScanController {
       const scanHistory = await scanService.getUserScanHistory(userId, {
         limit,
         offset,
-        savedOnly
+        savedOnly,
+        uniqueByProduct,
       });
       
       console.log(`✅ [${requestId}] [SCAN_HISTORY] Service call successful:`, {
