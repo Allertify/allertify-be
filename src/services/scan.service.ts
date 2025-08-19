@@ -3,6 +3,7 @@ import productService from './product.service';
 import aiService, { AIEvaluation } from './ai.service';
 import scanLimitService from './scan-limit.service';
 import cloudinaryService from './cloudinary.service';
+import { formatDateInTimeZone, getDefaultTimeZone } from '../utils/time.util';
 
 const prisma = new PrismaClient();
 
@@ -11,10 +12,12 @@ export interface ScanResult {
   userId: number;
   productId: number;
   scanDate: Date;
+  scanDateLocal?: string;
   riskLevel: string;
   riskExplanation: string | null;
   matchedAllergens: string | null;
   isSaved: boolean;
+  listType?: 'RED' | 'GREEN' | null;
   product: {
     id: number;
     barcode: string;
@@ -219,10 +222,41 @@ export class ScanService {
       limit?: number;
       offset?: number;
       savedOnly?: boolean;
+      uniqueByProduct?: boolean;
+      listType?: 'RED' | 'GREEN';
     } = {}
   ): Promise<ScanResult[]> {
     try {
-      const { limit = 20, offset = 0, savedOnly = false } = options;
+      const { limit = 20, offset = 0, savedOnly = false, uniqueByProduct = false, listType } = options;
+
+      if (uniqueByProduct) {
+        const recentScans = await prisma.product_scan.findMany({
+          where: {
+            user_id: userId,
+            ...(savedOnly && { is_saved: true }),
+          },
+          include: { product: true },
+          orderBy: { scan_date: 'desc' },
+          take: 500,
+        });
+
+        const seen = new Set<number>();
+        const latestPerProduct: typeof recentScans = [] as any;
+        for (const s of recentScans) {
+          if (!seen.has(s.product_id)) {
+            seen.add(s.product_id);
+            latestPerProduct.push(s);
+          }
+          if (latestPerProduct.length >= limit + offset) break;
+        }
+
+        const paged = latestPerProduct.slice(offset, offset + limit);
+        const enriched = await this.attachListTypes(userId, paged);
+        const mapped = enriched
+          .filter(s => this.filterByListType(s, listType))
+          .map(scan => this.transformScanResult(scan));
+        return mapped;
+      }
 
       const scans = await prisma.product_scan.findMany({
         where: {
@@ -239,7 +273,11 @@ export class ScanService {
         skip: offset,
       });
 
-      return scans.map(scan => this.transformScanResult(scan));
+      const enriched = await this.attachListTypes(userId, scans);
+      const mapped = enriched
+        .filter(s => this.filterByListType(s, listType))
+        .map(scan => this.transformScanResult(scan));
+      return mapped;
 
     } catch (error) {
       console.error('Error in getUserScanHistory:', error);
@@ -402,6 +440,9 @@ export class ScanService {
    * Helper: Transform database result ke format yang konsisten
    */
   private transformScanResult(scanData: any): ScanResult {
+    const timeZone = getDefaultTimeZone();
+    const scanDateLocal = formatDateInTimeZone(new Date(scanData.scan_date), timeZone);
+
     return {
       id: scanData.id,
       userId: scanData.user_id,
@@ -411,14 +452,35 @@ export class ScanService {
       riskExplanation: scanData.risk_explanation,
       matchedAllergens: scanData.matched_allergens,
       isSaved: scanData.is_saved,
+      listType: (scanData as any).listType ?? null,
       product: {
         id: scanData.product.id,
         barcode: scanData.product.barcode,
         name: scanData.product.name,
         imageUrl: scanData.product.image_url,
         ingredients: scanData.product.ingredients,
-      }
+      },
+      // expose local time computed on server for clients that want it
+      ...(scanDateLocal ? { scanDateLocal } : {}),
     };
+  }
+
+  // Attach user-specific list types (batch) to an array of product_scan rows
+  private async attachListTypes(userId: number, scans: any[]): Promise<any[]> {
+    if (scans.length === 0) return scans;
+    const productIds = Array.from(new Set(scans.map(s => s.product_id)));
+    const prefs = await prisma.user_product_preference.findMany({
+      where: { user_id: userId, product_id: { in: productIds } },
+      select: { product_id: true, list_type: true },
+    });
+    const map = new Map<number, 'RED' | 'GREEN'>();
+    for (const p of prefs) map.set(p.product_id, p.list_type as 'RED' | 'GREEN');
+    return scans.map(s => ({ ...s, listType: map.get(s.product_id) ?? null }));
+  }
+
+  private filterByListType(row: any, listType?: 'RED' | 'GREEN'): boolean {
+    if (!listType) return true;
+    return (row.listType ?? null) === listType;
   }
 }
 

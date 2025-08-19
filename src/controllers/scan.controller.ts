@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import scanService from '../services/scan.service';
 import scanLimitService from '../services/scan-limit.service';
-import Joi from 'joi';  
+import { prisma } from '../index';
+import Joi from 'joi';
 
 // Extend Express Request interface untuk user data dari auth middleware
 declare global {
@@ -44,7 +45,9 @@ const imageScanSchema = Joi.object({
 const scanHistoryQuerySchema = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(20),
   offset: Joi.number().integer().min(0).default(0),
-  savedOnly: Joi.boolean().default(false)
+  savedOnly: Joi.boolean().default(false),
+  uniqueByProduct: Joi.boolean().default(false),
+  listType: Joi.string().valid('RED', 'GREEN').optional(),
 });
 
 export class ScanController {
@@ -320,6 +323,45 @@ export class ScanController {
   };
 
   /**
+   * POST /scans/list
+   * Set or remove product list classification (RED/GREEN)
+   * Body: { productId: number, listType?: 'RED' | 'GREEN' } // if listType omitted/null -> remove
+   */
+  setProductList = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user?.userId) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+      const userId = parseInt(req.user.userId);
+
+      const { productId, listType } = req.body as { productId?: number; listType?: 'RED' | 'GREEN' };
+      if (!productId || typeof productId !== 'number') {
+        return res.status(400).json({ success: false, message: 'productId is required and must be a number' });
+      }
+      if (listType && !['RED', 'GREEN'].includes(listType)) {
+        return res.status(400).json({ success: false, message: 'listType must be RED or GREEN' });
+      }
+
+      if (!listType) {
+        // remove preference
+        await prisma.user_product_preference.deleteMany({ where: { user_id: userId, product_id: productId } });
+        return res.status(200).json({ success: true, message: 'Preference removed' });
+      }
+
+      // upsert preference
+      await prisma.user_product_preference.upsert({
+        where: { user_id_product_id: { user_id: userId, product_id: productId } },
+        update: { list_type: listType },
+        create: { user_id: userId, product_id: productId, list_type: listType },
+      });
+
+      return res.status(200).json({ success: true, message: 'Preference updated', data: { productId, listType } });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
    * GET /scans/history
    * Mendapatkan riwayat scan pengguna
    */
@@ -376,7 +418,7 @@ export class ScanController {
       }
 
       const userId = parseInt(req.user.userId);
-      const { limit, offset, savedOnly } = queryValue;
+      const { limit, offset, savedOnly, uniqueByProduct, listType } = queryValue;
 
       console.log(`✅ [${requestId}] [SCAN_HISTORY] Validation passed:`, {
         userId,
@@ -392,7 +434,9 @@ export class ScanController {
       const scanHistory = await scanService.getUserScanHistory(userId, {
         limit,
         offset,
-        savedOnly
+        savedOnly,
+        uniqueByProduct,
+        listType,
       });
       
       console.log(`✅ [${requestId}] [SCAN_HISTORY] Service call successful:`, {
@@ -444,6 +488,10 @@ export class ScanController {
     try {
       // Set savedOnly = true dan forward ke getScanHistory
       req.query.savedOnly = 'true';
+      // Forward optional filters
+      if (!('uniqueByProduct' in req.query)) {
+        req.query.uniqueByProduct = 'true';
+      }
       return await this.getScanHistory(req, res, next);
     } catch (error) {
       next(error);
