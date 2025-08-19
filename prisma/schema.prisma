@@ -43,6 +43,7 @@ model email_verification {
   otp_code         String    @db.VarChar(6)
   otp_code_expired DateTime
   usedAt           DateTime?
+  
   createdAt        DateTime  @default(now())
 
   // Relations
