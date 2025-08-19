@@ -10,7 +10,7 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from "./routes/auth.routes"
 import { errorHandler } from './middlewares/error.middleware';
 import swaggerUi from 'swagger-ui-express';
-import swaggerFile from '../swagger-output.json';
+import { swaggerSpec } from './config/swagger';
 
 
 dotenv.config();
@@ -40,7 +40,7 @@ app.use(limiter);
 
 app.use(express.json({limit: '10mb'}));
 app.use(express.urlencoded({extended: true}));
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
