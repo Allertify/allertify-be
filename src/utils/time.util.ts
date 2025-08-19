@@ -30,4 +30,22 @@ export function getDefaultTimeZone(): string {
   return process.env.DEFAULT_TIMEZONE || 'Asia/Jakarta';
 }
 
+/**
+ * Returns a Date representing the UTC instant of 00:00:00 for the given date in a specific timezone.
+ */
+export function startOfDayUTCForTimeZone(date: Date, timeZone: string): Date {
+  // Get the date as it would be in the target timezone
+  const zoned = new Date(date.toLocaleString('en-US', { timeZone }));
+  const year = zoned.getFullYear();
+  const month = zoned.getMonth();
+  const day = zoned.getDate();
+
+  // Compute the timezone offset (in minutes) for that local date
+  const offsetMinutes = Math.round((zoned.getTime() - new Date(zoned.toUTCString()).getTime()) / 60000);
+
+  // Construct the UTC timestamp corresponding to local midnight in the target timezone
+  const utcMillis = Date.UTC(year, month, day, 0, 0, 0) - offsetMinutes * 60_000;
+  return new Date(utcMillis);
+}
+
 

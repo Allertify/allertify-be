@@ -73,7 +73,7 @@ router.put('/save/:scanId', asyncHandler(scanController.toggleSaveScan));
 /**
  * GET /scans/history
  * Mendapatkan riwayat scan pengguna
- * Query params: limit?, offset?, savedOnly?
+ * Query params: limit?, offset?, savedOnly?, uniqueByProduct?, listType? (RED|GREEN)
  */
 router.get('/history', asyncHandler(scanController.getScanHistory));
 
@@ -82,6 +82,13 @@ router.get('/history', asyncHandler(scanController.getScanHistory));
  * Shortcut untuk mendapatkan scan yang disimpan
  */
 router.get('/saved', asyncHandler(scanController.getSavedScans));
+
+/**
+ * POST /scans/list
+ * Set or remove product list classification (RED/GREEN)
+ * Body: { productId: number, listType?: 'RED'|'GREEN' }
+ */
+router.post('/list', asyncHandler(scanController.setProductList));
 
 export default router;
 
