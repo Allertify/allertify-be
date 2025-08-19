@@ -22,7 +22,7 @@ RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS production
-
+WORKDIR /app
 # Install OpenSSL for Prisma compatibility
 RUN apk add --no-cache openssl
 
@@ -39,15 +39,22 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Copy built application from builder stage
-COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+# COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
+# COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+# COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+
+COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
 
 # Create logs directory
-RUN mkdir -p logs && chown -R nextjs:nodejs logs
+# RUN mkdir -p logs && chown -R nextjs:nodejs logs
 
-# Switch to non-root user
-USER nextjs
+# # Switch to non-root user
+# USER nextjs
 
 # Expose port
 EXPOSE 3000
@@ -56,5 +63,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the application
-CMD ["node", "dist/index.js"]
+# Start the applicationfp
+# CMD ["node", "dist/index.js"]
+CMD ["./docker-entrypoint.sh"]

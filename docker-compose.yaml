@@ -3,14 +3,14 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: allertify-postgres
     environment:
       POSTGRES_DB: allertify
       POSTGRES_USER: allertify
       POSTGRES_PASSWORD: 12345678
     ports:
-      - "5437:5437"
+      - "127.0.0.1:5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
     image: redis:7-alpine
     container_name: allertify-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6371:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -39,15 +39,21 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: allertify-be
+    env_file:
+      - .env
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3000
-      DATABASE_URL: postgresql://allertify:12345678@postgres:5437/allertify
+      DATABASE_URL: postgresql://allertify:12345678@postgres:5432/allertify
       JWT_ACCESS_SECRET: 4lL3rT1FFy_BE
       JWT_REFRESH_SECRET: 4lL3rT1FFy_BE
       REDIS_URL: redis://redis:6379
+      # Cloudinary Configuration
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3109:3000"
     depends_on:
       postgres:
         condition: service_healthy

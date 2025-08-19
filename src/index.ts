@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit  from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { Prisma, PrismaClient } from '@prisma/client';
+import authRoutes from "./routes/auth.routes"
 
 
 
@@ -45,6 +46,8 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API versioning
+app.use("/api/v1/auth", authRoutes);
 
 
 app.listen(port, () => {
