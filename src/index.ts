@@ -1,7 +1,7 @@
 
 import express, { Express} from 'express';
 // Import routes
-import scanRoutes from './routes/scan.route';
+import scanRoutes from './routes/scan.routes';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit  from 'express-rate-limit';
@@ -9,7 +9,8 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from "./routes/auth.routes"
 import { errorHandler } from './middlewares/error.middleware';
-
+import swaggerUi from 'swagger-ui-express';
+import swaggerFile from '../swagger-output.json';
 
 
 dotenv.config();
@@ -39,6 +40,7 @@ app.use(limiter);
 
 app.use(express.json({limit: '10mb'}));
 app.use(express.urlencoded({extended: true}));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
