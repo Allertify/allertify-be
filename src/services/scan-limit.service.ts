@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { getDefaultTimeZone, startOfDayUTCForTimeZone } from '../utils/time.util';
 
 const prisma = new PrismaClient();
 
@@ -38,8 +39,8 @@ export class ScanLimitService {
       }
 
       // Ambil usage hari ini
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const tz = getDefaultTimeZone();
+      const today = startOfDayUTCForTimeZone(new Date(), tz);
       
       const dailyUsage = await prisma.daily_scan_usage.findUnique({
         where: {
@@ -73,8 +74,8 @@ export class ScanLimitService {
    */
   async incrementDailyScanUsage(userId: number): Promise<void> {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const tz = getDefaultTimeZone();
+      const today = startOfDayUTCForTimeZone(new Date(), tz);
 
       // Upsert daily usage record
       await prisma.daily_scan_usage.upsert({
@@ -130,8 +131,8 @@ export class ScanLimitService {
    */
   async resetDailyUsage(userId: number): Promise<void> {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const tz = getDefaultTimeZone();
+      const today = startOfDayUTCForTimeZone(new Date(), tz);
 
       await prisma.daily_scan_usage.deleteMany({
         where: {
