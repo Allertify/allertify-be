@@ -12,6 +12,7 @@ import userRoutes from "./routes/user.routes"
 import { errorHandler } from './middlewares/error.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import { logger } from './utils/logger';
 
 
 dotenv.config();
@@ -70,6 +71,22 @@ app.use((req, res, next) => {
 
   // Add request ID to response headers for debugging
   res.setHeader('X-Request-ID', requestId);
+  
+  // Log request to file
+  logger.info('Incoming Request', {
+    requestId,
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    query: req.query,
+    headers: {
+      'user-agent': req.headers['user-agent'],
+      'content-type': req.headers['content-type'],
+      authorization: req.headers.authorization ? 'Bearer ***' : 'None',
+    },
+    timestamp: new Date().toISOString(),
+  });
+  
   next();
 });
 
@@ -81,8 +98,18 @@ app.use('/api/v1/scans', scanRoutes);
 //error handler
 app.use(errorHandler);
 
+// Global error handler for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('🚨 Uncaught Exception:', error);
+  logger.error('Uncaught Exception:', { error: error.message, stack: error.stack });
+  process.exit(1);
+});
 
-
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Rejection:', { reason, promise });
+  process.exit(1);
+});
 
 app.listen(port, () => {
   console.log(`🚀 Allertify Backend Server running on port ${port}`);

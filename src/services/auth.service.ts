@@ -6,6 +6,11 @@ import { sendOTPEmail } from "../utils/mailer";
 
 const prisma = new PrismaClient();
 
+// Test database connection
+prisma.$connect()
+  .then(() => console.log('✅ Database connected successfully'))
+  .catch((error) => console.error('❌ Database connection failed:', error));
+
 function generateOTP(): string {
     const num = Math.floor(Math.random()*1_000_000); //0-999999
     return num.toString().padStart(6,"0"); 
@@ -60,9 +65,13 @@ export async function createUser(input: {
     });
 
     //send otp to email
-    await sendOTPEmail(email, otp);
-
-    console.log(`[OTP] send to ${email}: ${otp} (valid until ${otpExpired.toISOString()})`);
+    try {
+        await sendOTPEmail(email, otp);
+        console.log(`[OTP] send to ${email}: ${otp} (valid until ${otpExpired.toISOString()})`);
+    } catch (emailError) {
+        console.error("Failed to send OTP email:", emailError);
+        // Continue without email for now, but log the error
+    }
 
     return { status: existing? "OTP_RESENT" as const : "REGISTERED" as const};
 

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { createUser, verifyOtpAndIssueToken, loginUser, forgotPassword, resetPassword } from "../services/auth.service";
 import { registerSchema, otpSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from "../middlewares/auth.validation";
 import asyncHandler from "../middlewares/asyncHandler";
+import { logger } from "../utils/logger";
 
 export const registerController = async (req: Request, res: Response) => {
     const { error, value } = registerSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
@@ -24,6 +25,22 @@ export const registerController = async (req: Request, res: Response) => {
     } catch(err: any){
         //eslint disable
         console.error("registerController error:", err);
+        logger.error("Register controller error:", { 
+            error: err.message, 
+            stack: err.stack,
+            input: value 
+        });
+        
+        // Return detailed error in development
+        if (process.env.NODE_ENV === 'development') {
+            return res.status(500).json({ 
+                success: false, 
+                message: "Internal server error",
+                error: err.message,
+                stack: err.stack
+            });
+        }
+        
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
