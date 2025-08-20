@@ -56,7 +56,7 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: ${SMTP_FROM}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3109:3000"
     depends_on:
       postgres:
         condition: service_healthy
