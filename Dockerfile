@@ -20,6 +20,7 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
+
 # Production stage
 FROM node:20-alpine AS production
 WORKDIR /app
@@ -46,6 +47,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+
 
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh

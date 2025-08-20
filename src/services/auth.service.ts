@@ -1,8 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2"
-import { date } from "joi";
 import jwt from "jsonwebtoken"
-import { sendOTPEmail } from "../utils/mailer";
+import { sendOTPEmail, sendResetPasswordEmail } from "../utils/mailer";
 
 const prisma = new PrismaClient();
 
@@ -15,6 +14,8 @@ function generateOTP(): string {
     const num = Math.floor(Math.random()*1_000_000); //0-999999
     return num.toString().padStart(6,"0"); 
 }
+
+
 
 export async function createUser(input: {
    full_name: string;
@@ -282,11 +283,33 @@ export async function resetPassword(token: string, newPassword: string) {
 /**
  * Send reset password email
  */
-async function sendResetPasswordEmail(to: string, token: string) {
-    // This would be implemented similar to sendOTPEmail
-    // For now, just log the token
-    console.log(`Reset password token for ${to}: ${token}`);
-    
-    // TODO: Implement actual email sending with reset link
-    // const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+ 
+/**
+ * Get public allergens list for user selection
+ */
+export async function getPublicAllergens(filters: { search?: string; limit?: number; offset?: number } = {}) {
+  const { search, limit = 50, offset = 0 } = filters;
+  
+  const where = search 
+    ? { name: { contains: search, mode: 'insensitive' as const } }
+    : {};
+  
+  const [items, total] = await Promise.all([
+    prisma.allergen.findMany({ 
+      where, 
+      orderBy: { name: 'asc' }, 
+      take: limit, 
+      skip: offset,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        is_custom: true
+      }
+    }),
+    prisma.allergen.count({ where })
+  ]);
+  
+  return { items, total };
 }
+ 

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createUser, verifyOtpAndIssueToken, loginUser, forgotPassword, resetPassword } from "../services/auth.service";
+import { createUser, verifyOtpAndIssueToken, loginUser, forgotPassword, resetPassword, getPublicAllergens } from "../services/auth.service";
 import { registerSchema, otpSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from "../middlewares/auth.validation";
 import asyncHandler from "../middlewares/asyncHandler";
 import { logger } from "../utils/logger";
@@ -192,3 +192,35 @@ export const resetPasswordController = async (req: Request, res: Response) => {
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
+
+/**
+ * GET /api/v1/auth/allergens
+ * Mendapatkan daftar allergens yang tersedia untuk user selection
+ */
+export const getPublicAllergensController = async (req: Request, res: Response) => {
+    const { search, limit, offset } = req.query;
+    
+    try {
+        const result = await getPublicAllergens({
+            search: search as string,
+            limit: limit ? parseInt(limit as string) : 50,
+            offset: offset ? parseInt(offset as string) : 0
+        });
+        
+        return res.status(200).json({
+            success: true,
+            message: "Allergens retrieved successfully",
+            data: {
+                items: result.items,
+                pagination: {
+                    limit: limit ? parseInt(limit as string) : 50,
+                    offset: offset ? parseInt(offset as string) : 0,
+                    total: result.total
+                }
+            }
+        });
+    } catch (err: any) {
+        console.error("getPublicAllergensController error:", err);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};

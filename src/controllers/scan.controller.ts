@@ -431,7 +431,7 @@ export class ScanController {
 
       // Ambil riwayat scan
       console.log(`🔄 [${requestId}] [SCAN_HISTORY] Calling scanService.getUserScanHistory...`);
-      const scanHistory = await scanService.getUserScanHistory(userId, {
+      const scanHistoryResult = await scanService.getUserScanHistory(userId, {
         limit,
         offset,
         savedOnly,
@@ -440,7 +440,8 @@ export class ScanController {
       });
       
       console.log(`✅ [${requestId}] [SCAN_HISTORY] Service call successful:`, {
-        resultCount: scanHistory.length,
+        resultCount: scanHistoryResult.scans.length,
+        total: scanHistoryResult.total,
         timestamp: new Date().toISOString()
       });
 
@@ -451,11 +452,11 @@ export class ScanController {
         success: true,
         message: 'Scan history retrieved successfully',
         data: {
-          scans: scanHistory,
+          scans: scanHistoryResult.scans,
           pagination: {
             limit,
             offset,
-            total: scanHistory.length
+            total: scanHistoryResult.total
           }
         }
       });

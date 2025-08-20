@@ -225,7 +225,7 @@ export class ScanService {
       uniqueByProduct?: boolean;
       listType?: 'RED' | 'GREEN';
     } = {}
-  ): Promise<ScanResult[]> {
+  ): Promise<{ scans: ScanResult[]; total: number }> {
     try {
       const { limit = 20, offset = 0, savedOnly = false, uniqueByProduct = false, listType } = options;
 
@@ -247,16 +247,25 @@ export class ScanService {
             seen.add(s.product_id);
             latestPerProduct.push(s);
           }
-          if (latestPerProduct.length >= limit + offset) break;
         }
 
+        const total = latestPerProduct.length;
         const paged = latestPerProduct.slice(offset, offset + limit);
         const enriched = await this.attachListTypes(userId, paged);
         const mapped = enriched
           .filter(s => this.filterByListType(s, listType))
           .map(scan => this.transformScanResult(scan));
-        return mapped;
+        
+        return { scans: mapped, total };
       }
+
+      // Get total count for pagination
+      const total = await prisma.product_scan.count({
+        where: {
+          user_id: userId,
+          ...(savedOnly && { is_saved: true }),
+        },
+      });
 
       const scans = await prisma.product_scan.findMany({
         where: {
@@ -277,7 +286,8 @@ export class ScanService {
       const mapped = enriched
         .filter(s => this.filterByListType(s, listType))
         .map(scan => this.transformScanResult(scan));
-      return mapped;
+      
+      return { scans: mapped, total };
 
     } catch (error) {
       console.error('Error in getUserScanHistory:', error);

@@ -8,7 +8,10 @@ import rateLimit  from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from "./routes/auth.routes";
-import userRoutes from "./routes/user.routes"
+import userRoutes from "./routes/user.routes";
+import productRoutes from "./routes/product.routes";
+import subscriptionRoutes from "./routes/subscription.routes";
+import adminRoutes from "./routes/admin.routes";
 import { errorHandler } from './middlewares/error.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
@@ -42,6 +45,8 @@ app.use(limiter);
 
 app.use(express.json({limit: '10mb'}));
 app.use(express.urlencoded({extended: true}));
+// Serve Swagger UI using manual spec only
+console.log('Using manual swaggerSpec for Swagger UI');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check endpoint
@@ -94,6 +99,9 @@ app.use((req, res, next) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/scans', scanRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/subscriptions', subscriptionRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 //error handler
 app.use(errorHandler);
@@ -114,15 +122,7 @@ process.on('unhandledRejection', (reason, promise) => {
 app.listen(port, () => {
   console.log(`🚀 Allertify Backend Server running on port ${port}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Available endpoints:`);
-  console.log(`   • GET  /health`);
-  console.log(`   • GET  /api/scans/limit`);
-  console.log(`   • POST /api/scans/barcode/:barcode`);
-  console.log(`   • POST /api/scans/image`);
-  console.log(`   • POST /api/scans/upload`);
-  console.log(`   • PUT  /api/scans/:scanId/save`);
-  console.log(`   • GET  /api/scans/history`);
-  console.log(`   • GET  /api/scans/saved`);
+
 });
 
 export default app;

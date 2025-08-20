@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerController, verifyOtpController, loginController, forgotPasswordController, resetPasswordController } from "../controllers/auth.controller";
+import { registerController, verifyOtpController, loginController, forgotPasswordController, resetPasswordController, getPublicAllergensController } from "../controllers/auth.controller";
 
 const router = Router();
 
@@ -110,15 +110,113 @@ router.post("/otp", verifyOtpController);
 router.post("/login", loginController);
 
 /**
- * POST /auth/forgot-password
- * Meminta token untuk reset password
+ * @swagger
+ * /api/v1/auth/forgot-password:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Request reset password token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Reset token sent if email exists
  */
 router.post("/forgot-password", forgotPasswordController);
 
 /**
- * POST /auth/reset-password  
- * Mengatur ulang password dengan token yang valid
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Reset password with token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, newPassword]
+ *             properties:
+ *               token: { type: string }
+ *               newPassword: { type: string, minLength: 8 }
+ *     responses:
+ *       200:
+ *         description: Password updated
  */
 router.post("/reset-password", resetPasswordController);
+
+/**
+ * @swagger
+ * /api/v1/auth/allergens:
+ *   get:
+ *     tags: [Authentication]
+ *     summary: Get available allergens for user selection
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search allergens by name
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *           maximum: 100
+ *         description: Number of allergens per page
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of allergens to skip
+ *     responses:
+ *       200:
+ *         description: Allergens retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     items:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           is_custom:
+ *                             type: boolean
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         limit:
+ *                           type: integer
+ *                         offset:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ */
+router.get("/allergens", getPublicAllergensController);
 
 export default router;

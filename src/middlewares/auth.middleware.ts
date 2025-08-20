@@ -108,6 +108,23 @@ export const requireRole = (roles: number[]) => {
 };
 
 /**
- * Middleware khusus untuk admin only
+ * Middleware untuk memastikan user adalah admin (role = 1)
  */
-export const requireAdmin = requireRole([1]);
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+    });
+  }
+
+  if (Number(req.user.role) !== 1) {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required',
+    });
+  }
+
+  next();
+};
+

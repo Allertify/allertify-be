@@ -96,56 +96,56 @@ router.get('/limit', asyncHandler(scanController.getUserScanLimit));
  */
 router.post('/barcode/:barcode', asyncHandler(scanController.scanBarcode));
 
-/**
- * @swagger
- * /scans/image:
- *   post:
- *     tags:
- *       - Scan
- *     summary: Scan produk dengan image URL
- *     description: Scan produk menggunakan URL gambar untuk deteksi alergen
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - imageUrl
- *             properties:
- *               imageUrl:
- *                 type: string
- *                 format: uri
- *                 description: URL gambar produk
- *                 example: "https://example.com/product-image.jpg"
- *               productId:
- *                 type: integer
- *                 description: ID produk (optional, untuk update existing product)
- *     responses:
- *       200:
- *         description: Scan berhasil
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/definitions/SuccessResponse'
- *                 - properties:
- *                     data:
- *                       $ref: '#/definitions/ScanResult'
- *       400:
- *         description: URL tidak valid
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/definitions/ErrorResponse'
- *       401:
- *         description: Unauthorized - token tidak valid
- *       429:
- *         description: Daily scan limit exceeded
- */
-router.post('/image', asyncHandler(scanController.scanImage));
+// /**
+//  * @swagger
+//  * /scans/image:
+//  *   post:
+//  *     tags:
+//  *       - Scan
+//  *     summary: Scan produk dengan image URL
+//  *     description: Scan produk menggunakan URL gambar untuk deteksi alergen
+//  *     security:
+//  *       - bearerAuth: []
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - imageUrl
+//  *             properties:
+//  *               imageUrl:
+//  *                 type: string
+//  *                 format: uri
+//  *                 description: URL gambar produk
+//  *                 example: "https://example.com/product-image.jpg"
+//  *               productId:
+//  *                 type: integer
+//  *                 description: ID produk (optional, untuk update existing product)
+//  *     responses:
+//  *       200:
+//  *         description: Scan berhasil
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               allOf:
+//  *                 - $ref: '#/definitions/SuccessResponse'
+//  *                 - properties:
+//  *                     data:
+//  *                       $ref: '#/definitions/ScanResult'
+//  *       400:
+//  *         description: URL tidak valid
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               $ref: '#/definitions/ErrorResponse'
+//  *       401:
+//  *         description: Unauthorized - token tidak valid
+//  *       429:
+//  *         description: Daily scan limit exceeded
+//  */
+// router.post('/image', asyncHandler(scanController.scanImage));
 
 /**
  * @swagger
