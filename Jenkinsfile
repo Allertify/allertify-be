@@ -173,11 +173,17 @@ pipeline {
                         echo "📦 Installing dependencies di VPS..."
                         ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npm ci"
                         
-                        echo "🔧 Building application di VPS..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npx prisma generate && npm run build"
+                        echo "🔧 Generating Prisma client di VPS..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npx prisma generate"
+                        
+                        echo "🏗️ Building application di VPS..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npm run build"
                         
                         echo "🚀 Menjalankan docker compose di VPS..."
                         ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
+                        
+                        echo "📋 Copying Prisma client dari container ke host..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker cp allertify-be:/app/node_modules/.prisma ./node_modules/ && docker cp allertify-be:/app/node_modules/@prisma ./node_modules/"
 
                         echo "✅ Deployment berhasil dijalankan"
                     '''
