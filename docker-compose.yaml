@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: allertify
       POSTGRES_PASSWORD: 12345678
     ports:
-      - "127.0.0.1:5437:5432"
+      - "5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -43,7 +43,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      DATABASE_URL: postgresql://allertify:12345678@postgres:5432/allertify
+      DATABASE_URL: postgresql://allertify:12345678@localhost:5437/allertify
       JWT_ACCESS_SECRET: 4lL3rT1FFy_BE
       JWT_REFRESH_SECRET: 4lL3rT1FFy_BE
       REDIS_URL: redis://redis:6379
@@ -56,7 +56,7 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: ${SMTP_FROM}
     ports:
-      - "127.0.0.1:3109:3000"
+      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
