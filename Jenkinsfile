@@ -5,6 +5,25 @@ pipeline {
         NODE_VERSION = '20'
         DOCKER_IMAGE = 'allertify-be'
         DOCKER_TAG = "${BUILD_NUMBER}"
+
+         DATABASE_URL = credentials('DATABASE_URL')
+        
+        // JWT secrets
+        JWT_ACCESS_SECRET = credentials('JWT_ACCESS_SECRET')
+        JWT_REFRESH_SECRET = credentials('JWT_REFRESH_SECRET')
+        
+        // Cloudinary
+        CLOUDINARY_CLOUD_NAME = credentials('CLOUDINARY_CLOUD_NAME')
+        CLOUDINARY_API_KEY = credentials('CLOUDINARY_API_KEY')
+        CLOUDINARY_API_SECRET = credentials('CLOUDINARY_API_SECRET')
+        
+        // Email
+        SMTP_USER = credentials('SMTP_USER')
+        SMTP_PASS = credentials('SMTP_PASS')
+        SMTP_FROM = credentials('SMTP_FROM')
+        
+        // AI
+        GEMINI_API_KEY = credentials('GEMINI_API_KEY')
     }
     
     stages {
@@ -116,6 +135,9 @@ pipeline {
 
                         echo "📤 Menyalin .env dari Credentials ke VPS..."
                         scp -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${ENV_FILE}" "${SSH_USER}@${VPS_HOST}:~/allertify-be/.env"
+                        
+                        echo "🔧 Setting .env file permissions..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "chmod 644 ~/allertify-be/.env"
 
                         echo "🚀 Menjalankan docker compose di VPS..."
                         ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
