@@ -184,6 +184,9 @@ pipeline {
                         
                         echo "📋 Copying Prisma client dari container ke host..."
                         ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker cp allertify-be:/app/node_modules/.prisma ./node_modules/ && docker cp allertify-be:/app/node_modules/@prisma ./node_modules/"
+                        
+                        echo "📄 Copying .env file ke container..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker cp .env allertify-be:/app/.env"
 
                         echo "✅ Deployment berhasil dijalankan"
                     '''
