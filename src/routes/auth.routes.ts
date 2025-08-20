@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerController, verifyOtpController, loginController } from "../controllers/auth.controller";
+import { registerController, verifyOtpController, loginController, forgotPasswordController, resetPasswordController } from "../controllers/auth.controller";
 
 const router = Router();
 
@@ -108,5 +108,17 @@ router.post("/otp", verifyOtpController);
  *               $ref: '#/definitions/ErrorResponse'
  */
 router.post("/login", loginController);
+
+/**
+ * POST /auth/forgot-password
+ * Meminta token untuk reset password
+ */
+router.post("/forgot-password", forgotPasswordController);
+
+/**
+ * POST /auth/reset-password  
+ * Mengatur ulang password dengan token yang valid
+ */
+router.post("/reset-password", resetPasswordController);
 
 export default router;

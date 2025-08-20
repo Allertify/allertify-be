@@ -22,3 +22,18 @@ export const loginSchema = Joi.object({
     email: Joi.string().trim().lowercase().email().max(100).required(),
     password: Joi.string().min(8).max(255).required(),
 });
+
+export const forgotPasswordSchema = Joi.object({
+    email: Joi.string().trim().lowercase().email().max(100).required(),
+});
+
+export const resetPasswordSchema = Joi.object({
+    token: Joi.string().required(),
+    newPassword: Joi.string()
+        .min(8)
+        .max(255)
+        .pattern(/[a-z]/) //lowercase
+        .pattern(/[A-Z]/) //uppercase
+        .pattern(/[0-9]/) //number
+        .required(),
+});

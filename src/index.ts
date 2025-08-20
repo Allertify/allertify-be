@@ -7,7 +7,8 @@ import helmet from 'helmet';
 import rateLimit  from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
-import authRoutes from "./routes/auth.routes"
+import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes"
 import { errorHandler } from './middlewares/error.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
@@ -73,8 +74,9 @@ app.use((req, res, next) => {
 });
 
 // API Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/scans', scanRoutes);
-app.use("/api/v1/auth", authRoutes);
 
 //error handler
 app.use(errorHandler);

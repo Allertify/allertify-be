@@ -24,6 +24,7 @@ model user {
   role                Int
   profile_picture_url String?
   createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
   last_login          DateTime?
 
   // Relations
@@ -35,6 +36,7 @@ model user {
   daily_scan_usages   daily_scan_usage[]
   email_verifications email_verification[]
   product_preferences user_product_preference[]
+  password_resets     password_reset[]
 }
 
 model email_verification {
@@ -88,11 +90,13 @@ model product {
 }
 
 model emergency_contact {
-  id           Int    @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   user_id      Int
-  name         String @db.VarChar(100)
-  phone_number String @db.VarChar(20)
-  relationship String @db.VarChar(50)
+  name         String   @db.VarChar(100)
+  phone_number String   @db.VarChar(20)
+  relationship String   @db.VarChar(50)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
   user user @relation(fields: [user_id], references: [id])
@@ -179,3 +183,30 @@ model daily_scan_usage {
 
   @@unique([user_id, usage_date])
 }
+
+model password_reset {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  token      String   @unique @db.VarChar(255)
+  expires_at DateTime
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user user @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+}
+
+// model user_allergy {
+//   id         Int      @id @default(autoincrement())
+//   user_id    Int
+//   allergen_id Int
+//   createdAt  DateTime @default(now())
+//   updatedAt  DateTime @updatedAt
+
+//   // Relations
+//   user     user     @relation(fields: [user_id], references: [id])
+//   allergen allergen @relation(fields: [allergen_id], references: [id])
+
+//   @@unique([user_id, allergen_id])
+// }

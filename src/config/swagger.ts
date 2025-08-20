@@ -224,7 +224,7 @@ export const swaggerSpec = {
         }
       }
     },
-    '/auth/verify-otp': {
+    '/auth/otp': {
       post: {
         tags: ['Authentication'],
         summary: 'Verifikasi OTP',

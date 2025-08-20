@@ -5,7 +5,7 @@ echo "⏳ Waiting DB..."
 sleep 3
 
 echo "🔧 Prisma generate..."
-npx prisma generate
+npx prisma generate || echo "Prisma generate failed, continuing..."
 
 echo "🔄 Migrate deploy..."
 npx prisma migrate deploy

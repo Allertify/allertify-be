@@ -186,3 +186,98 @@ export async function loginUser(input: { email: string; password: string }) {
         },
     };
 }
+
+/**
+ * Forgot password - send reset token to email
+ */
+export async function forgotPassword(email: string) {
+    const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase().trim() }
+    });
+
+    if (!user) {
+        return { status: "USER_NOT_FOUND" as const };
+    }
+
+    // Generate reset token (UUID-like)
+    const resetToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+    // Clean up existing reset tokens
+    await prisma.password_reset.deleteMany({
+        where: { user_id: user.id }
+    });
+
+    // Create new reset token
+    await prisma.password_reset.create({
+        data: {
+            user_id: user.id,
+            token: resetToken,
+            expires_at: expiresAt
+        }
+    });
+
+    // Send reset email
+    try {
+        await sendResetPasswordEmail(user.email, resetToken);
+    } catch (error) {
+        console.error("Failed to send reset password email:", error);
+        // Don't fail the request if email fails
+    }
+
+    return { status: "RESET_TOKEN_SENT" as const };
+}
+
+/**
+ * Reset password with token
+ */
+export async function resetPassword(token: string, newPassword: string) {
+    const resetRecord = await prisma.password_reset.findUnique({
+        where: { token },
+        include: { user: true }
+    });
+
+    if (!resetRecord) {
+        return { success: false, reason: "TOKEN_NOT_FOUND" as const };
+    }
+
+    if (resetRecord.expires_at < new Date()) {
+        // Clean up expired token
+        await prisma.password_reset.delete({
+            where: { token }
+        });
+        return { success: false, reason: "TOKEN_EXPIRED" as const };
+    }
+
+    if (!resetRecord.user) {
+        return { success: false, reason: "USER_NOT_FOUND" as const };
+    }
+
+    // Hash new password
+    const hashedPassword = await argon2.hash(newPassword, { type: argon2.argon2id });
+
+    // Update password and clean up reset token
+    await prisma.$transaction([
+        prisma.user.update({
+            where: { id: resetRecord.user_id },
+            data: { password: hashedPassword }
+        }),
+        prisma.password_reset.delete({
+            where: { token }
+        })
+    ]);
+
+    return { success: true };
+}
+
+/**
+ * Send reset password email
+ */
+async function sendResetPasswordEmail(to: string, token: string) {
+    // This would be implemented similar to sendOTPEmail
+    // For now, just log the token
+    console.log(`Reset password token for ${to}: ${token}`);
+    
+    // TODO: Implement actual email sending with reset link
+    // const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+}
