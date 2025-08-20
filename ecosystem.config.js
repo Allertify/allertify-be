@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'allertify-backend',
-    script: 'dist/index.js',
+    script: 'docker exec -it allertify-be node dist/index.js',
     instances: 1,
     autorestart: true,
     watch: false,

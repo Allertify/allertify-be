@@ -170,6 +170,12 @@ pipeline {
                         echo "🔧 Setting .env file permissions..."
                         ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "chmod 644 ~/allertify-be/.env"
 
+                        echo "📦 Installing dependencies di VPS..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npm ci"
+                        
+                        echo "🔧 Building application di VPS..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npx prisma generate && npm run build"
+                        
                         echo "🚀 Menjalankan docker compose di VPS..."
                         ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
 
