@@ -1,22 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// Interface untuk JWT payload
-interface JwtPayload {
-  userId: number;
+// Interface untuk JWT payload yang kita gunakan di request
+interface RequestUserPayload {
+  userId: string; // disimpan sebagai string di req.user agar konsisten dengan pemakaian
   email: string;
-  role: number;
+  role: string;
 }
 
 // Extend Express Request interface
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        userId: string;
-        email: string;
-        role: string;
-      };
+      user?: RequestUserPayload;
     }
   }
 }
@@ -46,12 +42,19 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
       });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as {
-      userId: string;
-      email: string;
-      role: string;
+    // Token yang kita sign berisi: { sub: user.id, email, role }
+    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload & {
+      sub?: number | string;
+      email?: string;
+      role?: number | string;
     };
-    req.user = decoded;
+
+    // Map payload token ke shape req.user yang digunakan di seluruh app
+    req.user = {
+      userId: String(decoded.sub ?? ''),
+      email: String(decoded.email ?? ''),
+      role: String(decoded.role ?? ''),
+    };
     next();
 
   } catch (error) {
