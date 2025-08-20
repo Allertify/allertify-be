@@ -24,7 +24,13 @@ module.exports = {
       SMTP_USER: 'arvanyudhistiaardana@gmail.com',
       SMTP_PASS: 'mglckoproodsaief',
       SMTP_FROM: 'arvanyudhistiaardana@gmail.com',
-      BYPASS_AUTH: 'false'
+      BYPASS_AUTH: 'false',
+      BYPASS_AI: 'false',
+      DEFAULT_TIMEZONE: 'Asia/Jakarta',
+      HARDCODED_USER_ID: '1',
+      HARDCODED_USER_EMAIL: 'test@example.com',
+      HARDCODED_USER_ROLE: 'user',
+      HARDCODED_ALLERGENS: 'gluten,lactose,nuts,shellfish,eggs'
     },
     log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     error_file: './logs/pm2-error.log',

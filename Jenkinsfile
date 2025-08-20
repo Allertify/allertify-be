@@ -6,24 +6,17 @@ pipeline {
         DOCKER_IMAGE = 'allertify-be'
         DOCKER_TAG = "${BUILD_NUMBER}"
 
-         DATABASE_URL = credentials('DATABASE_URL')
-        
-        // JWT secrets
-        JWT_ACCESS_SECRET = credentials('JWT_ACCESS_SECRET')
-        JWT_REFRESH_SECRET = credentials('JWT_REFRESH_SECRET')
-        
-        // Cloudinary
-        CLOUDINARY_CLOUD_NAME = credentials('CLOUDINARY_CLOUD_NAME')
-        CLOUDINARY_API_KEY = credentials('CLOUDINARY_API_KEY')
-        CLOUDINARY_API_SECRET = credentials('CLOUDINARY_API_SECRET')
-        
-        // Email
-        SMTP_USER = credentials('SMTP_USER')
-        SMTP_PASS = credentials('SMTP_PASS')
-        SMTP_FROM = credentials('SMTP_FROM')
-        
-        // AI
-        GEMINI_API_KEY = credentials('GEMINI_API_KEY')
+         // Environment variables for production
+        DATABASE_URL = 'postgresql://allertify:12345678@localhost:5437/allertify'
+        JWT_ACCESS_SECRET = '4lL3rT1FFy_BE_ACC'
+        JWT_REFRESH_SECRET = '4lL3rT1FFy_BE_RFR'
+        CLOUDINARY_CLOUD_NAME = 'dvlsclorg'
+        CLOUDINARY_API_KEY = '726327219123868'
+        CLOUDINARY_API_SECRET = 'UF0HD89O-4IhQY2_NWE0qBjDfCc'
+        SMTP_USER = 'arvanyudhistiaardana@gmail.com'
+        SMTP_PASS = 'mglckoproodsaief'
+        SMTP_FROM = 'arvanyudhistiaardana@gmail.com'
+        GEMINI_API_KEY = 'AIzaSyBKPkySOCvHasm2MlFi0Njp36RNmwIZ2XI'
     }
     
     stages {
@@ -106,6 +99,48 @@ pipeline {
             }
         }
 
+        stage('Generate Environment File') {
+            steps {
+                script {
+                    // Generate .env dari Jenkins credentials
+                    sh '''
+                        echo "# Database Configuration" > .env
+                        echo "DATABASE_URL=${DATABASE_URL}" >> .env
+                        echo "" >> .env
+                        echo "# JWT Configuration" >> .env
+                        echo "JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}" >> .env
+                        echo "JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}" >> .env
+                        echo "" >> .env
+                        echo "# Cloudinary Configuration" >> .env
+                        echo "CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}" >> .env
+                        echo "CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}" >> .env
+                        echo "CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}" >> .env
+                        echo "" >> .env
+                        echo "# Email Configuration" >> .env
+                        echo "SMTP_USER=${SMTP_USER}" >> .env
+                        echo "SMTP_PASS=${SMTP_PASS}" >> .env
+                        echo "SMTP_FROM=${SMTP_FROM}" >> .env
+                        echo "" >> .env
+                        echo "# AI Configuration" >> .env
+                        echo "GEMINI_API_KEY=${GEMINI_API_KEY}" >> .env
+                        echo "" >> .env
+                        echo "# Server Configuration" >> .env
+                        echo "NODE_ENV=production" >> .env
+                        echo "PORT=3001" >> .env
+                        echo "BYPASS_AUTH=false" >> .env
+                        echo "BYPASS_AI=false" >> .env
+                        echo "DEFAULT_TIMEZONE=Asia/Jakarta" >> .env
+                        echo "" >> .env
+                        echo "# Hardcoded Data" >> .env
+                        echo "HARDCODED_USER_ID=1" >> .env
+                        echo "HARDCODED_USER_EMAIL=test@example.com" >> .env
+                        echo "HARDCODED_USER_ROLE=user" >> .env
+                        echo "HARDCODED_ALLERGENS=gluten,lactose,nuts,shellfish,eggs" >> .env
+                    '''
+                }
+            }
+        }
+
         stage('Deploy to VPS') {
             // when {
             //     anyOf {
@@ -115,8 +150,7 @@ pipeline {
             steps {
                 withCredentials([
                     sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
-                    string(credentialsId: 'vps-host', variable: 'VPS_HOST'),
-                    file(credentialsId: 'allertify-env', variable: 'ENV_FILE')
+                    string(credentialsId: 'vps-host', variable: 'VPS_HOST')
                 ]) {
                     sh '''#!/bin/bash
                         echo "📁 Mengecek dan membersihkan direktori allertify-be di VPS..."
@@ -131,10 +165,7 @@ pipeline {
                         '
 
                         echo "📤 Menyalin source code..."
-                        rsync -av --exclude='.env' -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY}" ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
-
-                        echo "📤 Menyalin .env dari Credentials ke VPS..."
-                        scp -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${ENV_FILE}" "${SSH_USER}@${VPS_HOST}:~/allertify-be/.env"
+                        rsync -av -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY}" ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
                         
                         echo "🔧 Setting .env file permissions..."
                         ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "chmod 644 ~/allertify-be/.env"
