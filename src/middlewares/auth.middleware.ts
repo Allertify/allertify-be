@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { verifyAccessToken } from "../utils/jwt.util";
 import { UnauthorizedError, ForbiddenError } from "../utils/errors"
+import { JwtPayload } from "jsonwebtoken";
 
 export interface AuthPayload{
   userId: string;
@@ -25,10 +26,18 @@ export function authenticateToken(
   }
 
   try{
-    const payload = verifyAccessToken(token) as unknown as AuthPayload;
-    req.user = payload;
+    const decoded = verifyAccessToken(token) as AuthPayload;
+    if(
+      typeof decoded !== "object" ||
+      !decoded.userId ||
+      !decoded.email ||
+      !decoded.role
+    ) {
+      throw new UnauthorizedError("Invalid token payload");
+    }
+    req.user = decoded as AuthPayload;
     next();
-  } catch{
+  } catch (err){
     return next(new UnauthorizedError("Invalid or expired token"));
   }
 }
