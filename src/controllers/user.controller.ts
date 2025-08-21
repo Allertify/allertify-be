@@ -203,15 +203,14 @@ export const updateUserAllergies = asyncHandler(async (req: Request, res: Respon
 export const getEmergencyContacts = asyncHandler(async (req: Request, res: Response) => {
   const userId = parseInt(req.user!.userId);
 
-  const contacts = await prisma.emergency_contact.findMany({
-    where: { user_id: userId },
-    orderBy: { createdAt: 'asc' }
+  const contact = await prisma.emergency_contact.findUnique({
+    where: { user_id: userId }
   });
 
   res.status(200).json({
     success: true,
-    message: 'Emergency contacts retrieved successfully',
-    data: contacts
+    message: contact ? 'Emergency contact retrieved successfully' : 'No emergency contact found',
+    data: contact
   });
 });
 
@@ -231,15 +230,15 @@ export const createEmergencyContact = asyncHandler(async (req: Request, res: Res
     });
   }
 
-  // Check limit (max 5 emergency contacts)
-  const existingCount = await prisma.emergency_contact.count({
+  // Check if user already has an emergency contact
+  const existingContact = await prisma.emergency_contact.findUnique({
     where: { user_id: userId }
   });
 
-  if (existingCount >= 5) {
+  if (existingContact) {
     return res.status(400).json({
       success: false,
-      message: 'Maximum 5 emergency contacts allowed'
+      message: 'User already has an emergency contact. Please update the existing one instead.'
     });
   }
 
@@ -290,6 +289,14 @@ export const updateEmergencyContact = asyncHandler(async (req: Request, res: Res
     });
   }
 
+  // Check if value is not empty
+  if (!value || Object.keys(value).length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'At least one field must be provided for update'
+    });
+  }
+
   // Check if contact exists and belongs to user
   const existingContact = await prisma.emergency_contact.findFirst({
     where: { 
@@ -305,9 +312,21 @@ export const updateEmergencyContact = asyncHandler(async (req: Request, res: Res
     });
   }
 
+  // Filter out undefined values
+  const updateData = Object.fromEntries(
+    Object.entries(value).filter(([_, v]) => v !== undefined)
+  );
+
+  if (Object.keys(updateData).length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'No valid data provided for update'
+    });
+  }
+
   const updatedContact = await prisma.emergency_contact.update({
     where: { id: contactId },
-    data: value
+    data: updateData
   });
 
   res.status(200).json({

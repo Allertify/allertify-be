@@ -91,7 +91,7 @@ model product {
 
 model emergency_contact {
   id           Int      @id @default(autoincrement())
-  user_id      Int
+  user_id      Int      @unique 
   name         String   @db.VarChar(100)
   phone_number String   @db.VarChar(20)
   relationship String   @db.VarChar(50)
