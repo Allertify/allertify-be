@@ -87,9 +87,40 @@ router.put('/me/allergies', asyncHandler(updateUserAllergies));
  * /api/v1/users/me/contacts:
  *   get:
  *     tags: [Users]
- *     summary: Get user's emergency contacts
+ *     summary: Get user's emergency contact
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Emergency contact retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Emergency contact retrieved successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/EmergencyContact'
+ *       200:
+ *         description: No emergency contact found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "No emergency contact found"
+ *                 data:
+ *                   type: null
  *   post:
  *     tags: [Users]
  *     summary: Create an emergency contact
@@ -103,9 +134,36 @@ router.put('/me/allergies', asyncHandler(updateUserAllergies));
  *             type: object
  *             required: [name, phone_number, relationship]
  *             properties:
- *               name: { type: string }
- *               phone_number: { type: string }
- *               relationship: { type: string }
+ *               name: 
+ *                 type: string
+ *                 description: Contact name
+ *                 example: "John Doe"
+ *               phone_number: 
+ *                 type: string
+ *                 description: Contact phone number
+ *                 example: "+6281234567890"
+ *               relationship: 
+ *                 type: string
+ *                 description: Relationship with user
+ *                 example: "Father"
+ *     responses:
+ *       201:
+ *         description: Emergency contact created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Emergency contact created successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/EmergencyContact'
+ *       400:
+ *         description: Validation error or user already has emergency contact
  * /api/v1/users/me/contacts/{contactId}:
  *   put:
  *     tags: [Users]
@@ -117,6 +175,42 @@ router.put('/me/allergies', asyncHandler(updateUserAllergies));
  *         name: contactId
  *         required: true
  *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: 
+ *                 type: string
+ *                 description: Contact name
+ *               phone_number: 
+ *                 type: string
+ *                 description: Contact phone number
+ *               relationship: 
+ *                 type: string
+ *                 description: Relationship with user
+ *     responses:
+ *       200:
+ *         description: Emergency contact updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Emergency contact updated successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/EmergencyContact'
+ *       400:
+ *         description: Validation error or no data provided
+ *       404:
+ *         description: Emergency contact not found
  *   delete:
  *     tags: [Users]
  *     summary: Delete an emergency contact
@@ -127,6 +221,11 @@ router.put('/me/allergies', asyncHandler(updateUserAllergies));
  *         name: contactId
  *         required: true
  *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Emergency contact deleted successfully
+ *       404:
+ *         description: Emergency contact not found
  */
 router.get('/me/contacts', asyncHandler(getEmergencyContacts));
 router.post('/me/contacts', asyncHandler(createEmergencyContact));

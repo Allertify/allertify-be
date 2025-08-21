@@ -168,6 +168,18 @@ export const swaggerSpec = {
           canScan: { type: 'boolean', example: true }
         }
       },
+      EmergencyContact: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer', example: 1 },
+          user_id: { type: 'integer', example: 2 },
+          name: { type: 'string', example: 'John Doe' },
+          phone_number: { type: 'string', example: '+6281234567890' },
+          relationship: { type: 'string', example: 'Father' },
+          createdAt: { type: 'string', format: 'date-time', example: '2025-08-20T10:00:00.000Z' },
+          updatedAt: { type: 'string', format: 'date-time', example: '2025-08-20T10:00:00.000Z' }
+        }
+      },
       SuccessResponse: {
         type: 'object',
         properties: {
@@ -558,71 +570,6 @@ export const swaggerSpec = {
         }
       }
     },
-    // '/scans/image': {
-    //   post: {
-    //     tags: ['Scan'],
-    //     summary: 'Scan produk dengan image URL',
-    //     description: 'Scan produk menggunakan URL gambar untuk deteksi alergen',
-    //     security: [{ bearerAuth: [] }],
-    //     requestBody: {
-    //       required: true,
-    //       content: {
-    //         'application/json': {
-    //           schema: {
-    //             type: 'object',
-    //             required: ['imageUrl'],
-    //             properties: {
-    //               imageUrl: {
-    //                 type: 'string',
-    //                 format: 'uri',
-    //                 description: 'URL gambar produk',
-    //                 example: 'https://example.com/product-image.jpg'
-    //               },
-    //               productId: {
-    //                 type: 'integer',
-    //                 description: 'ID produk (optional, untuk update existing product)'
-    //               }
-    //             }
-    //           }
-    //         }
-    //       }
-    //     },
-    //     responses: {
-    //       '200': {
-    //         description: 'Scan berhasil',
-    //         content: {
-    //           'application/json': {
-    //             schema: {
-    //               allOf: [
-    //                 { $ref: '#/components/schemas/SuccessResponse' },
-    //                 {
-    //                   type: 'object',
-    //                   properties: {
-    //                     data: { $ref: '#/components/schemas/ScanResult' }
-    //                   }
-    //                 }
-    //               ]
-    //             }
-    //           }
-    //         }
-    //       },
-    //       '400': {
-    //         description: 'URL tidak valid',
-    //         content: {
-    //           'application/json': {
-    //             schema: { $ref: '#/components/schemas/ErrorResponse' }
-    //           }
-    //         }
-    //       },
-    //       '401': {
-    //         description: 'Unauthorized - token tidak valid'
-    //       },
-    //       '429': {
-    //         description: 'Daily scan limit exceeded'
-    //       }
-    //     }
-    //   }
-    // },
     '/scans/upload': {
       post: {
         tags: ['Scan'],
@@ -884,147 +831,147 @@ export const swaggerSpec = {
         }
       }
     },
-    // Products
-    // '/products/search': {
-    //   get: {
-    //     tags: ['Products'],
-    //     summary: 'Search products by name or barcode',
-    //     parameters: [
-    //       { name: 'query', in: 'query', schema: { type: 'string' }, description: 'Search query (name or barcode)' },
-    //       { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 }, description: 'Number of products to return' },
-    //       { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 }, description: 'Number of products to skip' }
-    //     ],
-    //     responses: {
-    //       '200': {
-    //         description: 'Products retrieved successfully',
-    //         content: {
-    //           'application/json': {
-    //             schema: {
-    //               type: 'object',
-    //               properties: {
-    //                 success: { type: 'boolean', example: true },
-    //                 message: { type: 'string', example: 'Products retrieved successfully' },
-    //                 data: {
-    //                   type: 'object',
-    //                   properties: {
-    //                     products: { type: 'array', items: { $ref: '#/components/schemas/Product' } },
-    //                     pagination: { $ref: '#/components/schemas/Pagination' }
-    //                   }
-    //                 }
-    //               }
-    //             }
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    // },
-    // '/products/popular': {
-    //   get: {
-    //     tags: ['Products'],
-    //     summary: 'Get popular products based on scan count',
-    //     parameters: [ { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } } ],
-    //     responses: {
-    //       '200': {
-    //         description: 'Popular products retrieved successfully',
-    //         content: {
-    //           'application/json': {
-    //             schema: {
-    //               type: 'object',
-    //               properties: {
-    //                 success: { type: 'boolean', example: true },
-    //                 message: { type: 'string', example: 'Popular products retrieved successfully' },
-    //                 data: { type: 'object', properties: { products: { type: 'array', items: { $ref: '#/components/schemas/Product' } } } }
-    //               }
-    //             }
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    // },
-    // '/products/reports/my': {
-    //   get: {
-    //     tags: ['Products'],
-    //     summary: "Get user's product reports",
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [
-    //       { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
-    //       { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } }
-    //     ],
-    //     responses: {
-    //       '200': {
-    //         description: 'User reports retrieved successfully',
-    //         content: {
-    //           'application/json': {
-    //             schema: {
-    //               type: 'object',
-    //               properties: {
-    //                 success: { type: 'boolean', example: true },
-    //                 message: { type: 'string', example: 'User reports retrieved successfully' },
-    //                 data: {
-    //                   type: 'object',
-    //                   properties: {
-    //                     reports: { type: 'array', items: { $ref: '#/components/schemas/ProductReport' } },
-    //                     pagination: { $ref: '#/components/schemas/Pagination' }
-    //                   }
-    //                 }
-    //               }
-    //             }
-    //           }
-    //         }
-    //       },
-    //       '401': { $ref: '#/components/responses/Unauthorized' }
-    //     }
-    //   }
-    // },
-    // '/products/{productId}': {
-    //   get: {
-    //     tags: ['Products'],
-    //     summary: 'Get product detail by ID',
-    //     parameters: [ { name: 'productId', in: 'path', required: true, schema: { type: 'integer' }, description: 'Product ID' } ],
-    //     responses: {
-    //       '200': {
-    //         description: 'Product detail retrieved successfully',
-    //         content: {
-    //           'application/json': {
-    //             schema: {
-    //               type: 'object',
-    //               properties: {
-    //                 success: { type: 'boolean', example: true },
-    //                 message: { type: 'string', example: 'Product detail retrieved successfully' },
-    //                 data: {
-    //                   type: 'object',
-    //                   properties: {
-    //                     product: { $ref: '#/components/schemas/Product' }
-    //                   }
-    //                 }
-    //               }
-    //             }
-    //           }
-    //         }
-    //       },
-    //       '404': { description: 'Product not found' }
-    //     }
-    //   }
-    // },
-    // '/products/{productId}/report': {
-    //   post: {
-    //     tags: ['Products'],
-    //     summary: 'Report a problematic product',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [ { name: 'productId', in: 'path', required: true, schema: { type: 'integer' } } ],
-    //     requestBody: {
-    //       required: true,
-    //       content: {
-    //         'application/json': {
-    //           schema: { type: 'object', required: ['report_details'], properties: { report_details: { type: 'string', minLength: 10, maxLength: 255, example: 'Incorrect ingredient information listed on this product' } } }
-    //         }
-    //       }
-    //     },
-    //     responses: { '201': { description: 'Product report submitted successfully' }, '400': { description: 'Validation error or invalid product ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '404': { description: 'Product not found' }, '409': { description: 'User has already reported this product' } }
-    //   }
-    // },
+   // Products
+    '/products/search': {
+      get: {
+        tags: ['Products'],
+        summary: 'Search products by name or barcode',
+        parameters: [
+          { name: 'query', in: 'query', schema: { type: 'string' }, description: 'Search query (name or barcode)' },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 }, description: 'Number of products to return' },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 }, description: 'Number of products to skip' }
+        ],
+        responses: {
+          '200': {
+            description: 'Products retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Products retrieved successfully' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        products: { type: 'array', items: { $ref: '#/components/schemas/Product' } },
+                        pagination: { $ref: '#/components/schemas/Pagination' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/products/popular': {
+      get: {
+        tags: ['Products'],
+        summary: 'Get popular products based on scan count',
+        parameters: [ { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } } ],
+        responses: {
+          '200': {
+            description: 'Popular products retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Popular products retrieved successfully' },
+                    data: { type: 'object', properties: { products: { type: 'array', items: { $ref: '#/components/schemas/Product' } } } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/products/reports/my': {
+      get: {
+        tags: ['Products'],
+        summary: "Get user's product reports",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } }
+        ],
+        responses: {
+          '200': {
+            description: 'User reports retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'User reports retrieved successfully' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        reports: { type: 'array', items: { $ref: '#/components/schemas/ProductReport' } },
+                        pagination: { $ref: '#/components/schemas/Pagination' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': { $ref: '#/components/responses/Unauthorized' }
+        }
+      }
+    },
+    '/products/{productId}': {
+      get: {
+        tags: ['Products'],
+        summary: 'Get product detail by ID',
+        parameters: [ { name: 'productId', in: 'path', required: true, schema: { type: 'integer' }, description: 'Product ID' } ],
+        responses: {
+          '200': {
+            description: 'Product detail retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Product detail retrieved successfully' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        product: { $ref: '#/components/schemas/Product' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '404': { description: 'Product not found' }
+        }
+      }
+    },
+    '/products/{productId}/report': {
+      post: {
+        tags: ['Products'],
+        summary: 'Report a problematic product',
+        security: [{ bearerAuth: [] }],
+        parameters: [ { name: 'productId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['report_details'], properties: { report_details: { type: 'string', minLength: 10, maxLength: 255, example: 'Incorrect ingredient information listed on this product' } } }
+            }
+          }
+        },
+        responses: { '201': { description: 'Product report submitted successfully' }, '400': { description: 'Validation error or invalid product ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '404': { description: 'Product not found' }, '409': { description: 'User has already reported this product' } }
+      }
+    },
     // Subscriptions
     '/subscriptions/plans': {
       get: {
@@ -1092,129 +1039,129 @@ export const swaggerSpec = {
       }
     },
     // Admin
-    // '/admin/dashboard': {
-    //   get: {
-    //     tags: ['Admin'],
-    //     summary: 'Get admin dashboard statistics',
-    //     security: [{ bearerAuth: [] }],
-    //     responses: { '200': { description: 'Dashboard statistics retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
-    //   }
-    // },
-    // '/admin/analytics': {
-    //   get: {
-    //     tags: ['Admin'],
-    //     summary: 'Get system analytics',
-    //     security: [{ bearerAuth: [] }],
-    //     responses: { '200': { description: 'System analytics retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
-    //   }
-    // },
-    // '/admin/users': {
-    //   get: {
-    //     tags: ['Admin'],
-    //     summary: 'Get all users with filters',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [
-    //       { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
-    //       { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
-    //       { name: 'search', in: 'query', schema: { type: 'string' } },
-    //       { name: 'role', in: 'query', schema: { type: 'integer', enum: [0, 1] } },
-    //       { name: 'is_verified', in: 'query', schema: { type: 'boolean' } }
-    //     ],
-    //     responses: {
-    //       '200': { description: 'Users retrieved successfully' },
-    //       '401': { $ref: '#/components/responses/Unauthorized' },
-    //       '403': { $ref: '#/components/responses/Forbidden' }
-    //     }
-    //   }
-    // },
-    // '/admin/users/{userId}': {
-    //   get: {
-    //     tags: ['Admin'],
-    //     summary: 'Get user details by ID',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [ { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } } ],
-    //     responses: { '200': { description: 'User details retrieved successfully' }, '400': { description: 'Invalid user ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { description: 'User not found' } }
-    //   },
-    //   put: {
-    //     tags: ['Admin'],
-    //     summary: 'Update user role or verification status',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [ { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } } ],
-    //     requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { role: { type: 'integer', enum: [0, 1], example: 1 }, is_verified: { type: 'boolean', example: true } }, minProperties: 1 } } } },
-    //     responses: { '200': { description: 'User updated successfully' }, '400': { description: 'Validation error or invalid user ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { description: 'User not found' } }
-    //   },
-    //   delete: {
-    //     tags: ['Admin'],
-    //     summary: 'Delete (deactivate) user',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [ { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } } ],
-    //     responses: { '200': { description: 'User deleted successfully' }, '400': { description: 'Invalid user ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { description: 'User not found' } }
-    //   }
-    // },
-    // '/admin/reports': {
-    //   get: {
-    //     tags: ['Admin'],
-    //     summary: 'Get all product reports',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [
-    //       { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
-    //       { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
-    //       { name: 'status', in: 'query', schema: { type: 'string', enum: ['PENDING', 'REVIEWED', 'RESOLVED', 'REJECTED'] } }
-    //     ],
-    //     responses: { '200': { description: 'Product reports retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
-    //   }
-    // },
-    // '/admin/reports/{reportId}': {
-    //   put: {
-    //     tags: ['Admin'],
-    //     summary: 'Update product report status',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [ { name: 'reportId', in: 'path', required: true, schema: { type: 'integer' } } ],
-    //     requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['status'], properties: { status: { type: 'string', enum: ['PENDING', 'REVIEWED', 'RESOLVED', 'REJECTED'], example: 'REVIEWED' } } } } } },
-    //     responses: { '200': { description: 'Report status updated successfully' }, '400': { description: 'Validation error or invalid report ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { description: 'Report not found' } }
-    //   }
-    // },
-    // '/admin/subscriptions/stats': {
-    //   get: {
-    //     tags: ['Admin'],
-    //     summary: 'Get subscription statistics',
-    //     security: [{ bearerAuth: [] }],
-    //     responses: { '200': { description: 'Subscription statistics retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
-    //   }
-    // },
-    // '/admin/allergens': {
-    //   get: {
-    //     tags: ['Admin'],
-    //     summary: 'List allergens',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [ { name: 'search', in: 'query', schema: { type: 'string' } }, { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } }, { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } } ],
-    //     responses: { '200': { description: 'Allergens retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
-    //   },
-    //   post: {
-    //     tags: ['Admin'],
-    //     summary: 'Create allergen',
-    //     security: [{ bearerAuth: [] }],
-    //     requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name'], properties: { name: { type: 'string' }, description: { type: 'string' }, is_custom: { type: 'boolean' } } } } } },
-    //     responses: { '201': { description: 'Allergen created successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
-    //   }
-    // },
-    // '/admin/allergens/{id}': {
-    //   put: {
-    //     tags: ['Admin'],
-    //     summary: 'Update allergen',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [ { name: 'id', in: 'path', required: true, schema: { type: 'integer' } } ],
-    //     requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' }, description: { type: 'string' }, is_custom: { type: 'boolean' } } } } } },
-    //     responses: { '200': { description: 'Allergen updated successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
-    //   },
-    //   delete: {
-    //     tags: ['Admin'],
-    //     summary: 'Delete allergen',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [ { name: 'id', in: 'path', required: true, schema: { type: 'integer' } } ],
-    //     responses: { '200': { description: 'Allergen deleted successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
-    //   }
-    // },
+    '/admin/dashboard': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get admin dashboard statistics',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'Dashboard statistics retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
+      }
+    },
+    '/admin/analytics': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get system analytics',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'System analytics retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
+      }
+    },
+    '/admin/users': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get all users with filters',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+          { name: 'role', in: 'query', schema: { type: 'integer', enum: [0, 1] } },
+          { name: 'is_verified', in: 'query', schema: { type: 'boolean' } }
+        ],
+        responses: {
+          '200': { description: 'Users retrieved successfully' },
+          '401': { $ref: '#/components/responses/Unauthorized' },
+          '403': { $ref: '#/components/responses/Forbidden' }
+        }
+      }
+    },
+    '/admin/users/{userId}': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get user details by ID',
+        security: [{ bearerAuth: [] }],
+        parameters: [ { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        responses: { '200': { description: 'User details retrieved successfully' }, '400': { description: 'Invalid user ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { description: 'User not found' } }
+      },
+      put: {
+        tags: ['Admin'],
+        summary: 'Update user role or verification status',
+        security: [{ bearerAuth: [] }],
+        parameters: [ { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { role: { type: 'integer', enum: [0, 1], example: 1 }, is_verified: { type: 'boolean', example: true } }, minProperties: 1 } } } },
+        responses: { '200': { description: 'User updated successfully' }, '400': { description: 'Validation error or invalid user ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { description: 'User not found' } }
+      },
+      delete: {
+        tags: ['Admin'],
+        summary: 'Delete (deactivate) user',
+        security: [{ bearerAuth: [] }],
+        parameters: [ { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        responses: { '200': { description: 'User deleted successfully' }, '400': { description: 'Invalid user ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { description: 'User not found' } }
+      }
+    },
+    '/admin/reports': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get all product reports',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['PENDING', 'REVIEWED', 'RESOLVED', 'REJECTED'] } }
+        ],
+        responses: { '200': { description: 'Product reports retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
+      }
+    },
+    '/admin/reports/{reportId}': {
+      put: {
+        tags: ['Admin'],
+        summary: 'Update product report status',
+        security: [{ bearerAuth: [] }],
+        parameters: [ { name: 'reportId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['status'], properties: { status: { type: 'string', enum: ['PENDING', 'REVIEWED', 'RESOLVED', 'REJECTED'], example: 'REVIEWED' } } } } } },
+        responses: { '200': { description: 'Report status updated successfully' }, '400': { description: 'Validation error or invalid report ID' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { description: 'Report not found' } }
+      }
+    },
+    '/admin/subscriptions/stats': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get subscription statistics',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'Subscription statistics retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
+      }
+    },
+    '/admin/allergens': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List allergens',
+        security: [{ bearerAuth: [] }],
+        parameters: [ { name: 'search', in: 'query', schema: { type: 'string' } }, { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } }, { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } } ],
+        responses: { '200': { description: 'Allergens retrieved successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
+      },
+      post: {
+        tags: ['Admin'],
+        summary: 'Create allergen',
+        security: [{ bearerAuth: [] }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name'], properties: { name: { type: 'string' }, description: { type: 'string' }, is_custom: { type: 'boolean' } } } } } },
+        responses: { '201': { description: 'Allergen created successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
+      }
+    },
+    '/admin/allergens/{id}': {
+      put: {
+        tags: ['Admin'],
+        summary: 'Update allergen',
+        security: [{ bearerAuth: [] }],
+        parameters: [ { name: 'id', in: 'path', required: true, schema: { type: 'integer' } } ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' }, description: { type: 'string' }, is_custom: { type: 'boolean' } } } } } },
+        responses: { '200': { description: 'Allergen updated successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
+      },
+      delete: {
+        tags: ['Admin'],
+        summary: 'Delete allergen',
+        security: [{ bearerAuth: [] }],
+        parameters: [ { name: 'id', in: 'path', required: true, schema: { type: 'integer' } } ],
+        responses: { '200': { description: 'Allergen deleted successfully' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' } }
+      }
+    },
     '/auth/allergens': {
       get: {
         tags: ['Authentication'],
@@ -1273,25 +1220,25 @@ export const swaggerSpec = {
       name: 'Authentication',
       description: 'Endpoints untuk autentikasi user'
     },
-    // {
-    //   name: 'Users',
-    //   description: 'Endpoints untuk user profile & settings'
-    // },
+    {
+      name: 'Users',
+      description: 'Endpoints untuk user profile & settings'
+    },
     {
       name: 'Scan',
       description: 'Endpoints untuk scan produk dan deteksi alergen'
     },
-    // {
-    //   name: 'Products',
-    //   description: 'Endpoints untuk produk'
-    // },
+    {
+      name: 'Products',
+      description: 'Endpoints untuk produk'
+    },
     {
       name: 'Subscriptions',
       description: 'Endpoints untuk subscription'
     },
-    // {
-    //   name: 'Admin',
-    //   description: 'Endpoints untuk admin'
-    // }
+    {
+      name: 'Admin',
+      description: 'Endpoints untuk admin'
+    }
   ]
 };

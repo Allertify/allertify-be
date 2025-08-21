@@ -49,7 +49,7 @@ export class AdminService {
   }
 
   async deleteAllergen(id: number) {
-    // Optional: prevent delete if referenced by user_allergen
+    
     const references = await prisma.user_allergen.count({ where: { allergen_id: id } });
     if (references > 0) {
       throw new Error('Cannot delete allergen that is referenced by users');
