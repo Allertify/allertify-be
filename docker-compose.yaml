@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: allertify
       POSTGRES_PASSWORD: 12345678
     ports:
-      - "5437:5432"
+      - "0.0.0.0:5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

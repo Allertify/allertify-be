@@ -127,7 +127,6 @@ pipeline {
                         echo "# Server Configuration" >> .env
                         echo "NODE_ENV=production" >> .env
                         echo "PORT=3001" >> .env
-                        echo "BYPASS_AUTH=false" >> .env
                         echo "BYPASS_AI=false" >> .env
                         echo "DEFAULT_TIMEZONE=Asia/Jakarta" >> .env
                         echo "" >> .env

@@ -3,7 +3,6 @@ import asyncHandler from '../middlewares/asyncHandler';
 import adminService from '../services/admin.service';
 import subscriptionService from '../services/subscription.service';
 import Joi from 'joi';
-import adminSvc from '../services/admin.service';
 
 // Validation schemas
 const getUsersSchema = Joi.object({
@@ -326,7 +325,7 @@ export const listAllergens = asyncHandler(async (req: Request, res: Response) =>
   if (error) {
     return res.status(400).json({ success: false, message: 'Validation error', details: error.details.map(d => d.message) });
   }
-  const { items, total } = await adminSvc.listAllergens(value);
+  const { items, total } = await adminService.listAllergens(value);
   res.status(200).json({ success: true, message: 'Allergens retrieved successfully', data: { items, pagination: { limit: value.limit, offset: value.offset, total } } });
 });
 
@@ -338,7 +337,7 @@ export const createAllergen = asyncHandler(async (req: Request, res: Response) =
   if (error) {
     return res.status(400).json({ success: false, message: 'Validation error', details: error.details.map(d => d.message) });
   }
-  const created = await adminSvc.createAllergen(value);
+  const created = await adminService.createAllergen(value);
   res.status(201).json({ success: true, message: 'Allergen created successfully', data: created });
 });
 
@@ -354,7 +353,7 @@ export const updateAllergen = asyncHandler(async (req: Request, res: Response) =
   if (error) {
     return res.status(400).json({ success: false, message: 'Validation error', details: error.details.map(d => d.message) });
   }
-  const updated = await adminSvc.updateAllergen(id, value);
+  const updated = await adminService.updateAllergen(id, value);
   res.status(200).json({ success: true, message: 'Allergen updated successfully', data: updated });
 });
 
@@ -366,6 +365,6 @@ export const deleteAllergen = asyncHandler(async (req: Request, res: Response) =
   if (isNaN(id)) {
     return res.status(400).json({ success: false, message: 'Invalid allergen ID' });
   }
-  const result = await adminSvc.deleteAllergen(id);
+  const result = await adminService.deleteAllergen(id);
   res.status(200).json({ success: true, message: 'Allergen deleted successfully', data: result });
 });

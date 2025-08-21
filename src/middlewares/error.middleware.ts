@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { ErrorResponse } from '../utils/response';
 
 export interface AppError extends Error {
   statusCode?: number;
+  code?: string;
   isOperational?: boolean;
 }
 
@@ -23,18 +25,31 @@ export const errorHandler = (
     method: req.method,
     ip: req.ip,
     userAgent: req.get('User-Agent'),
+    statusCode,
+    code: error.code
   });
 
- 
   const responseMessage = process.env.NODE_ENV === 'production' && statusCode === 500
     ? 'Something went wrong!'
     : message;
 
-  res.status(statusCode).json({
+  const response: ErrorResponse = {
     success: false,
     message: responseMessage,
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
-  });
+    timestamp: new Date().toISOString()
+  };
+
+  // Add error code if available
+  if (error.code) {
+    response.code = error.code;
+  }
+
+  // Add stack trace in development
+  if (process.env.NODE_ENV === 'development') {
+    response.stack = error.stack ?? '';
+  }
+
+  res.status(statusCode).json(response);
 };
 
 export const createError = (statusCode: number, message: string): AppError => {

@@ -24,7 +24,6 @@ module.exports = {
       SMTP_USER: 'arvanyudhistiaardana@gmail.com',
       SMTP_PASS: 'mglckoproodsaief',
       SMTP_FROM: 'arvanyudhistiaardana@gmail.com',
-      BYPASS_AUTH: 'false',
       BYPASS_AI: 'false',
       DEFAULT_TIMEZONE: 'Asia/Jakarta',
       HARDCODED_USER_ID: '1',

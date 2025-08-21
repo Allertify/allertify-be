@@ -70,23 +70,6 @@
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.2"
   },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "roots": [
-      "<rootDir>/src",
-      "<rootDir>/tests"
-    ],
-    "testMatch": [
-      "**/__tests__/**/*.ts",
-      "**/?(*.)+(spec|test).ts"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.ts",
-      "!src/**/*.d.ts",
-      "!src/index.ts"
-    ]
-  },
   "prisma": {
     "seed": "node dist/prisma/seed.js"
   }

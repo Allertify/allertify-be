@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import subscriptionService from './subscription.service';
 
 const prisma = new PrismaClient();
 
@@ -153,6 +154,15 @@ export class SubscriptionService {
         }
       });
 
+      try {
+        const freePlan = await prisma.tier_plan.findUnique({ where: { plan_type: 'FREE' } });
+        if (freePlan) {
+          await this.createOrUpgradeSubscription(userId, freePlan.id, 1);
+        }
+      } catch (e) {
+        console.warn('ensure FREE subscription failed:', e);
+      }
+
       return updatedSubscription;
     } catch (error) {
       if (error instanceof Error) {
@@ -175,8 +185,8 @@ export class SubscriptionService {
         saved_product_limit: subscription.tier_plan.saved_product_limit,
         plan_type: subscription.tier_plan.plan_type
       } : {
-        scan_count_limit: 100, // Default free tier
-        saved_product_limit: 50,
+        scan_count_limit: 10, // Default free tier
+        saved_product_limit: 5,
         plan_type: 'FREE'
       };
 

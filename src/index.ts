@@ -44,8 +44,7 @@ app.use(limiter);
 
 app.use(express.json({limit: '10mb'}));
 app.use(express.urlencoded({extended: true}));
-// Serve Swagger UI using manual spec only
-console.log('Using manual swaggerSpec for Swagger UI');
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check endpoint

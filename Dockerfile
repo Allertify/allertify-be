@@ -17,9 +17,9 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
+
 # Build the application
 RUN npm run build
-
 
 # Production stage
 FROM node:20-alpine AS production
@@ -40,14 +40,13 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Copy built application from builder stage
-# COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
-# COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-# COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
+# Copy Swagger documentation
+COPY --from=builder /app/src/config/swagger.ts ./src/config/swagger.ts
 
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
@@ -65,6 +64,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the applicationfp
-# CMD ["node", "dist/index.js"]
+# Start the application
 CMD ["sh", "./docker-entrypoint.sh"]

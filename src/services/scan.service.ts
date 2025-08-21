@@ -83,12 +83,15 @@ export class ScanService {
       // 7. Get updated scan limit info
       const updatedLimitInfo = await scanLimitService.getUserDailyScanLimit(userId);
 
-      // 8. Transform dan return hasil
+      // 8. Transform hasil
       const result = this.transformScanResult(scanResult);
       result.scanLimit = {
         remainingScans: updatedLimitInfo.remainingScans,
         dailyLimit: updatedLimitInfo.dailyLimit
       };
+
+      // 9. Attach user-specific list type agar langsung muncul di response scan
+      result.listType = await this.getUserProductListType(userId, product.id);
 
       return result;
 
@@ -158,12 +161,15 @@ export class ScanService {
       // 7. Get updated scan limit info
       const updatedLimitInfo = await scanLimitService.getUserDailyScanLimit(userId);
 
-      // 8. Transform dan return hasil
+      // 8. Transform hasil
       const result = this.transformScanResult(scanResult);
       result.scanLimit = {
         remainingScans: updatedLimitInfo.remainingScans,
         dailyLimit: updatedLimitInfo.dailyLimit
       };
+
+      // 9. Attach user-specific list type
+      result.listType = await this.getUserProductListType(userId, product.id);
 
       return result;
 
@@ -305,15 +311,7 @@ export class ScanService {
    */
   private async getUserAllergies(userId: number): Promise<string[]> {
     try {
-      // Jika bypass auth aktif, return hardcoded allergens
-      if (process.env.BYPASS_AUTH === 'true') {
-        const hardcodedAllergens = process.env.HARDCODED_ALLERGENS 
-          ? process.env.HARDCODED_ALLERGENS.split(',').map(a => a.trim())
-          : ['gluten', 'lactose', 'nuts', 'shellfish', 'eggs'];
-        
-        console.log('🔓 Using hardcoded allergens:', hardcodedAllergens);
-        return hardcodedAllergens;
-      }
+ 
 
       // Normal flow: query database
       const userAllergies = await prisma.user_allergen.findMany({
@@ -413,12 +411,15 @@ export class ScanService {
       // 8. Get updated scan limit info
       const updatedLimitInfo = await scanLimitService.getUserDailyScanLimit(userId);
 
-      // 9. Transform dan return hasil
+      // 9. Transform hasil
       const result = this.transformScanResult(scanResult);
       result.scanLimit = {
         remainingScans: updatedLimitInfo.remainingScans,
         dailyLimit: updatedLimitInfo.dailyLimit
       };
+
+      // 10. Attach user-specific list type
+      result.listType = await this.getUserProductListType(userId, product.id);
 
       return result;
 
@@ -473,6 +474,23 @@ export class ScanService {
       // expose local time computed on server for clients that want it
       ...(scanDateLocal ? { scanDateLocal } : {}),
     };
+  }
+
+  // Ambil list type RED/GREEN milik user untuk sebuah produk
+  private async getUserProductListType(
+    userId: number,
+    productId: number
+  ): Promise<'RED' | 'GREEN' | null> {
+    try {
+      const pref = await prisma.user_product_preference.findUnique({
+        where: { user_id_product_id: { user_id: userId, product_id: productId } },
+        select: { list_type: true },
+      });
+      return (pref?.list_type as 'RED' | 'GREEN' | undefined) ?? null;
+    } catch (error) {
+      // Fail-soft: kalau error, jangan blokir response scan
+      return null;
+    }
   }
 
   // Attach user-specific list types (batch) to an array of product_scan rows

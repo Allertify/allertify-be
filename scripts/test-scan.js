@@ -75,10 +75,6 @@ async function testScanEndpoints() {
   } catch (error) {
     console.error('❌ Test failed:', error.response?.data || error.message);
     
-    if (error.response?.status === 401) {
-      console.log('\n💡 Pastikan BYPASS_AUTH=true di environment variables');
-    }
-    
     if (error.response?.status === 429) {
       console.log('\n⚠️  Daily scan limit exceeded! Test berhasil - limit enforcement berfungsi.');
     }

@@ -17,28 +17,8 @@
 npm install
 ```
 
-### Environment Setup
-1. Copy `env.example` to `.env`
-2. Configure your database and API keys
-3. For development without authentication, set `BYPASS_AUTH=true`
-4. Configure Cloudinary for image uploads (optional but recommended)
 
-### Development Mode (Bypass Authentication)
-Untuk development/testing tanpa perlu setup authentication:
 
-```bash
-# Set environment variable
-export BYPASS_AUTH=true  # Linux/Mac
-set BYPASS_AUTH=true     # Windows CMD
-$env:BYPASS_AUTH="true"  # Windows PowerShell
-
-# Atau tambahkan ke .env file
-BYPASS_AUTH=true
-HARDCODED_USER_ID=1
-HARDCODED_USER_EMAIL=test@example.com
-HARDCODED_USER_ROLE=user
-HARDCODED_ALLERGENS=gluten,lactose,nuts,shellfish,eggs
-```
 
 ### Running the Application
 ```bash
@@ -69,20 +49,7 @@ Fitur ini memungkinkan Anda untuk:
 
 ### Environment Variables untuk Bypass
 ```env
-# Enable bypass
-BYPASS_AUTH=true
 
-# Hardcoded user
-HARDCODED_USER_ID=1
-HARDCODED_USER_EMAIL=test@example.com
-HARDCODED_USER_ROLE=user
-
-# Hardcoded allergens (comma-separated)
-HARDCODED_ALLERGENS=gluten,lactose,nuts,shellfish,eggs
-```
-
-### Security Note
-⚠️ **JANGAN gunakan bypass auth di production!** Fitur ini hanya untuk development/testing.
 
 ## 📚 API Endpoints
 

@@ -1,226 +1,162 @@
 import { Request, Response } from "express";
 import { createUser, verifyOtpAndIssueToken, loginUser, forgotPassword, resetPassword, getPublicAllergens } from "../services/auth.service";
+import { SubscriptionService } from '../services/subscription.service';
 import { registerSchema, otpSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from "../middlewares/auth.validation";
 import asyncHandler from "../middlewares/asyncHandler";
 import { logger } from "../utils/logger";
+import { sendSuccess, sendError } from "../utils/response";
+import { validateRequest } from "../utils/validation";
 
-export const registerController = async (req: Request, res: Response) => {
-    const { error, value } = registerSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
-    if(error){
-        return res.status(400).json({ success: false, message: "Validation error", detail: error.details.map(d => d.message) });
+export const registerController = asyncHandler(async (req: Request, res: Response) => {
+    const validation = validateRequest(registerSchema, req.body);
+    if (!validation.isValid) {
+        return sendError(res, "Validation error", 400, { errors: validation.errors ?? [] });
     }
 
-    try{
-        const result = await createUser(value);
+    const result = await createUser(validation.value!);
 
-        if(result.status === "ALREADY_VERIFIED"){
-            return res.status(409).json({ success: false, message: "Email already registered."});
+    if (result.status === "ALREADY_VERIFIED") {
+        return sendError(res, "Email already registered", 409);
+    }
+
+    const statusCode = result.status === "REGISTERED" ? 201 : 200;
+    const message = result.status === "REGISTERED" 
+        ? "User registered. OTP sent to your email."
+        : "OTP has been resent to your email.";
+    
+    return sendSuccess(res, null, message, statusCode);
+});
+
+export const verifyOtpController = asyncHandler(async (req: Request, res: Response) => {
+    const validation = validateRequest(otpSchema, req.body);
+    if (!validation.isValid) {
+        return sendError(res, "Validation error", 400, { errors: validation.errors ?? [] });
+    }
+
+    const result = await verifyOtpAndIssueToken(validation.value!);
+
+    if (!result.ok) {
+        if (result.reason === "USER_NOT_FOUND") {
+            return sendError(res, "User not found", 400);
         }
-
-        const status = result.status === "REGISTERED" ? 201 : 200;
-        const message = result.status === "REGISTERED" 
-            ? "User registered. OTP sent to your email."
-            : "OTP has been resent to your email."
-        return res.status(status).json({ success: true, message });
-    } catch(err: any){
-        //eslint disable
-        console.error("registerController error:", err);
-        logger.error("Register controller error:", { 
-            error: err.message, 
-            stack: err.stack,
-            input: value 
-        });
-        
-        // Return detailed error in development
-        if (process.env.NODE_ENV === 'development') {
-            return res.status(500).json({ 
-                success: false, 
-                message: "Internal server error",
-                error: err.message,
-                stack: err.stack
-            });
+        if (result.reason === "OTP_NOT_FOUND_OR_EXPIRED" || result.reason === "OTP_EXPIRED") {
+            return sendError(res, "OTP not found or expired", 400);
         }
-        
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-}
-
-export async function verifyOtpController(req: Request, res: Response) {
-    const { error, value } = otpSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
-    if(error){
-        return res.status(400).json({ success: false, message: "Validation error", details: error.details.map(d => d.message) });
-    }
-
-    try {
-        const result = await verifyOtpAndIssueToken(value);
-
-        if(!result.ok){
-            if(result.reason === "USER_NOT_FOUND") return res.status(400).json({ success: false, message: "User not found" });
-            if (result.reason === "OTP_NOT_FOUND_OR_EXPIRED" || result.reason === "OTP_EXPIRED")
-                return res.status(400).json({ success: false, message: "OTP not found or expired" });
-            if (result.reason === "OTP_INVALID") return res.status(400).json({ success: false, message: "Invalid OTP" });
-            return res.status(400).json({ success: false, message: "OTP verification failed" });
+        if (result.reason === "OTP_INVALID") {
+            return sendError(res, "Invalid OTP", 400);
         }
-
-        return res.status(200).json({
-            success: true,
-            message: "Account verified",
-            accessToken: result.accessToken,
-            user: result.user,
-        });
-    } catch (err: any) {
-        //eslint disable
-        console.error("verifyOtpController error:", err);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        return sendError(res, "OTP verification failed", 400);
     }
-}
+
+    const subscriptionService = new SubscriptionService();
+    const subscription = await subscriptionService.getUserSubscription(result.user.id);
+
+    return sendSuccess(res, {
+        accessToken: result.accessToken,
+        user: {
+            id: result.user.id,
+            email: result.user.email,
+            fullName: result.user.full_name,
+            isVerified: result.user.is_verified,
+            role: result.user.role,
+        },
+        subscription: subscription
+    }, "Account verified");
+});
 
 export const loginController = asyncHandler(async (req, res) => {
-    const { error, value } = loginSchema.validate(req.body, {
-        abortEarly: false,
-        stripUnknown: true,
-    });
-    if(error){
-        return res.status(400).json({
-            success: false,
-            message: "Validation error",
-            detail: error.details.map( d => d.message ),
-        });
+    const validation = validateRequest(loginSchema, req.body);
+    if (!validation.isValid) {
+        return sendError(res, "Validation error", 400, { errors: validation.errors  ?? []});
     }
 
-    const result = await loginUser(value);
-    if(!result.ok){
-        if(result.reason === "USER_NOT_VERIFIED"){
-            return res.status(403).json({
-                success: false,
-                message: "Account is not verified",
-            });
+    const result = await loginUser(validation.value!);
+    if (!result.ok) {
+        if (result.reason === "USER_NOT_VERIFIED") {
+            return sendError(res, "Account is not verified", 403);
         }
-        if(result.reason === "INVALID_CREDENTIALS"){
-            return res.status(401).json({
-                success: false,
-                message: "Invalid email or password",
-            });
+        if (result.reason === "INVALID_CREDENTIALS") {
+            return sendError(res, "Invalid email or password", 401);
         }
-        return res.status(401).json({ success: false, message: "Login failed"});
+        return sendError(res, "Login failed", 401);
     }
-    return res.status(200).json({
-        success: true,
-        message: "Login successful",
+
+    return sendSuccess(res, {
         accessToken: result.accessToken,
-        user: result.user,
-    });
+        user: {
+            id: result.user.id,
+            email: result.user.email,
+            fullName: result.user.full_name,
+            isVerified: result.user.is_verified,
+            role: result.user.role,
+        }
+    }, "Login successful");
 });
 
 /**
  * POST /api/v1/auth/forgot-password
  * Meminta token untuk reset password
  */
-export const forgotPasswordController = async (req: Request, res: Response) => {
-    const { error, value } = forgotPasswordSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
-    if (error) {
-        return res.status(400).json({ 
-            success: false, 
-            message: "Validation error", 
-            details: error.details.map(d => d.message) 
-        });
+export const forgotPasswordController = asyncHandler(async (req: Request, res: Response) => {
+    const validation = validateRequest(forgotPasswordSchema, req.body);
+    if (!validation.isValid) {
+        return sendError(res, "Validation error", 400, { errors: validation.errors ?? [] });
     }
 
-    try {
-        const result = await forgotPassword(value.email);
-        
-        if (result.status === "USER_NOT_FOUND") {
-            // For security, don't reveal if email exists
-            return res.status(200).json({ 
-                success: true, 
-                message: "If this email exists, a reset link has been sent to your email." 
-            });
-        }
+    const result = await forgotPassword(validation.value!.email);
+    
+    // For security, don't reveal if email exists
+    const message = result.status === "USER_NOT_FOUND" 
+        ? "If this email exists, a reset link has been sent to your email."
+        : "Password reset link has been sent to your email.";
 
-        return res.status(200).json({ 
-            success: true, 
-            message: "Password reset link has been sent to your email." 
-        });
-    } catch (err: any) {
-        console.error("forgotPasswordController error:", err);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-}
+    return sendSuccess(res, null, message);
+});
 
 /**
  * POST /api/v1/auth/reset-password
  * Mengatur ulang password dengan token yang valid
  */
-export const resetPasswordController = async (req: Request, res: Response) => {
-    const { error, value } = resetPasswordSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
-    if (error) {
-        return res.status(400).json({ 
-            success: false, 
-            message: "Validation error", 
-            details: error.details.map(d => d.message) 
-        });
+export const resetPasswordController = asyncHandler(async (req: Request, res: Response) => {
+    const validation = validateRequest(resetPasswordSchema, req.body);
+    if (!validation.isValid) {
+        return sendError(res, "Validation error", 400, { errors: validation.errors ?? [] });
     }
 
-    try {
-        const result = await resetPassword(value.token, value.newPassword);
-        
-        if (!result.success) {
-            if (result.reason === "TOKEN_NOT_FOUND" || result.reason === "TOKEN_EXPIRED") {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Reset token is invalid or has expired." 
-                });
-            }
-            if (result.reason === "USER_NOT_FOUND") {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "User not found." 
-                });
-            }
-            return res.status(400).json({ 
-                success: false, 
-                message: "Password reset failed." 
-            });
+    const result = await resetPassword(validation.value!.token, validation.value!.newPassword);
+    
+    if (!result.success) {
+        if (result.reason === "TOKEN_NOT_FOUND" || result.reason === "TOKEN_EXPIRED") {
+            return sendError(res, "Reset token is invalid or has expired", 400);
         }
-
-        return res.status(200).json({ 
-            success: true, 
-            message: "Password has been reset successfully. You can now login with your new password." 
-        });
-    } catch (err: any) {
-        console.error("resetPasswordController error:", err);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        if (result.reason === "USER_NOT_FOUND") {
+            return sendError(res, "User not found", 400);
+        }
+        return sendError(res, "Password reset failed", 400);
     }
-}
+
+    return sendSuccess(res, null, "Password has been reset successfully. You can now login with your new password.");
+});
 
 /**
  * GET /api/v1/auth/allergens
  * Mendapatkan daftar allergens yang tersedia untuk user selection
  */
-export const getPublicAllergensController = async (req: Request, res: Response) => {
+export const getPublicAllergensController = asyncHandler(async (req: Request, res: Response) => {
     const { search, limit, offset } = req.query;
     
-    try {
-        const result = await getPublicAllergens({
-            search: search as string,
+    const result = await getPublicAllergens({
+        search: search as string,
+        limit: limit ? parseInt(limit as string) : 50,
+        offset: offset ? parseInt(offset as string) : 0
+    });
+    
+    return sendSuccess(res, {
+        items: result.items,
+        pagination: {
             limit: limit ? parseInt(limit as string) : 50,
-            offset: offset ? parseInt(offset as string) : 0
-        });
-        
-        return res.status(200).json({
-            success: true,
-            message: "Allergens retrieved successfully",
-            data: {
-                items: result.items,
-                pagination: {
-                    limit: limit ? parseInt(limit as string) : 50,
-                    offset: offset ? parseInt(offset as string) : 0,
-                    total: result.total
-                }
-            }
-        });
-    } catch (err: any) {
-        console.error("getPublicAllergensController error:", err);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-};
+            offset: offset ? parseInt(offset as string) : 0,
+            total: result.total
+        }
+    }, "Allergens retrieved successfully");
+});

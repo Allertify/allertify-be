@@ -3,6 +3,9 @@ import scanService from '../services/scan.service';
 import scanLimitService from '../services/scan-limit.service';
 import { prisma } from '../index';
 import Joi from 'joi';
+import { sendSuccess, sendError } from '../utils/response';
+import { validateRequest } from '../utils/validation';
+import { logger } from '../utils/logger';
 
 // Extend Express Request interface untuk user data dari auth middleware
 declare global {
@@ -59,59 +62,37 @@ export class ScanController {
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(7);
     
-    console.log(`🔍 [${requestId}] [SCAN_BARCODE] Request started:`, {
+    logger.info(`[SCAN_BARCODE] Request started`, {
+      requestId,
       method: req.method,
       url: req.url,
       path: req.path,
       params: req.params,
       query: req.query,
-      headers: {
-        'user-agent': req.headers['user-agent'],
-        'content-type': req.headers['content-type'],
-        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
-      },
-      timestamp: new Date().toISOString()
+      userAgent: req.headers['user-agent'],
+      contentType: req.headers['content-type'],
+      hasAuth: !!req.headers.authorization
     });
 
     try {
-      // Bypass auth untuk development/testing
-      if (process.env.BYPASS_AUTH === 'true') {
-        console.log(`🔓 [${requestId}] [SCAN_BARCODE] Bypass auth enabled, using hardcoded user`);
-        // Set hardcoded user data
-        req.user = {
-          userId: process.env.HARDCODED_USER_ID || '1',
-          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
-          role: process.env.HARDCODED_USER_ROLE || 'user'
-        };
-      }
-
       // Validasi parameter
-      const { error: paramError, value: paramValue } = barcodeParamSchema.validate(req.params);
-      if (paramError) {
-        console.log(`❌ [${requestId}] [SCAN_BARCODE] Validation error:`, paramError.details);
-        return res.status(400).json({
-          success: false,
-          message: 'Validation error',
-          errors: paramError.details.map(detail => ({
-            field: detail.path.join('.'),
-            message: detail.message
-          }))
-        });
+      const validation = validateRequest(barcodeParamSchema, req.params);
+      if (!validation.isValid) {
+        logger.warn(`[SCAN_BARCODE] Validation error`, { requestId, errors: validation.errors });
+        return sendError(res, 'Validation error', 400, { errors: validation.errors ?? [] });
       }
 
       // Pastikan user sudah login
       if (!req.user?.userId) {
-        console.log(`❌ [${requestId}] [SCAN_BARCODE] Authentication failed: No user data`);
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
+        logger.warn(`[SCAN_BARCODE] Authentication failed`, { requestId });
+        return sendError(res, 'Authentication required', 401);
       }
 
-      const { barcode } = paramValue;
+      const { barcode } = validation.value!;
       const userId = parseInt(req.user.userId);
 
-      console.log(`✅ [${requestId}] [SCAN_BARCODE] Validation passed:`, {
+      logger.info(`[SCAN_BARCODE] Processing scan`, {
+        requestId,
         barcode,
         userId,
         userEmail: req.user.email,
@@ -119,27 +100,22 @@ export class ScanController {
       });
 
       // Proses scan barcode
-      console.log(`🔄 [${requestId}] [SCAN_BARCODE] Calling scanService.processBarcodeScan...`);
       const scanResult = await scanService.processBarcodeScan(barcode, userId);
       
-      console.log(`✅ [${requestId}] [SCAN_BARCODE] Service call successful:`, {
-        resultType: typeof scanResult,
-        hasData: !!scanResult,
-        timestamp: new Date().toISOString()
-      });
-
       const responseTime = Date.now() - startTime;
-      console.log(`🎯 [${requestId}] [SCAN_BARCODE] Request completed successfully in ${responseTime}ms`);
-
-      res.status(200).json({
-        success: true,
-        message: 'Barcode scan completed successfully',
-        data: scanResult
+      logger.info(`[SCAN_BARCODE] Request completed successfully`, {
+        requestId,
+        responseTime,
+        hasResult: !!scanResult
       });
+
+      return sendSuccess(res, scanResult, 'Barcode scan completed successfully');
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      console.error(`💥 [${requestId}] [SCAN_BARCODE] Error occurred after ${responseTime}ms:`, {
+      logger.error(`[SCAN_BARCODE] Error occurred`, {
+        requestId,
+        responseTime,
         error: error instanceof Error ? {
           name: error.name,
           message: error.message,
@@ -149,8 +125,7 @@ export class ScanController {
           method: req.method,
           url: req.url,
           params: req.params,
-          userId: req.user?.userId,
-          timestamp: new Date().toISOString()
+          userId: req.user?.userId
         }
       });
       next(error);
@@ -165,58 +140,35 @@ export class ScanController {
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(7);
     
-    console.log(`🖼️ [${requestId}] [SCAN_IMAGE] Request started:`, {
+    logger.info(`[SCAN_IMAGE] Request started`, {
+      requestId,
       method: req.method,
       url: req.url,
-      path: req.path,
       body: req.body,
-      headers: {
-        'user-agent': req.headers['user-agent'],
-        'content-type': req.headers['content-type'],
-        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
-      },
-      timestamp: new Date().toISOString()
+      userAgent: req.headers['user-agent'],
+      contentType: req.headers['content-type'],
+      hasAuth: !!req.headers.authorization
     });
 
     try {
-      // Bypass auth untuk development/testing
-      if (process.env.BYPASS_AUTH === 'true') {
-        console.log(`🔓 [${requestId}] [SCAN_IMAGE] Bypass auth enabled, using hardcoded user`);
-        // Set hardcoded user data
-        req.user = {
-          userId: process.env.HARDCODED_USER_ID || '1',
-          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
-          role: process.env.HARDCODED_USER_ROLE || 'user'
-        };
-      }
-
       // Validasi body request
-      const { error: bodyError, value: bodyValue } = imageScanSchema.validate(req.body);
-      if (bodyError) {
-        console.log(`❌ [${requestId}] [SCAN_IMAGE] Validation error:`, bodyError.details);
-        return res.status(400).json({
-          success: false,
-          message: 'Validation error',
-          errors: bodyError.details.map(detail => ({
-            field: detail.path.join('.'),
-            message: detail.message
-          }))
-        });
+      const validation = validateRequest(imageScanSchema, req.body);
+      if (!validation.isValid) {
+        logger.warn(`[SCAN_IMAGE] Validation error`, { requestId, errors: validation.errors });
+        return sendError(res, 'Validation error', 400, { errors: validation.errors ?? [] });
       }
 
       // Pastikan user sudah login
       if (!req.user?.userId) {
-        console.log(`❌ [${requestId}] [SCAN_IMAGE] Authentication failed: No user data`);
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
+        logger.warn(`[SCAN_IMAGE] Authentication failed`, { requestId });
+        return sendError(res, 'Authentication required', 401);
       }
 
-      const { imageUrl, productId } = bodyValue;
+      const { imageUrl, productId } = validation.value!;
       const userId = parseInt(req.user.userId);
 
-      console.log(`✅ [${requestId}] [SCAN_IMAGE] Validation passed:`, {
+      logger.info(`[SCAN_IMAGE] Processing scan`, {
+        requestId,
         imageUrl,
         productId,
         userId,
@@ -225,27 +177,22 @@ export class ScanController {
       });
 
       // Proses scan gambar
-      console.log(`🔄 [${requestId}] [SCAN_IMAGE] Calling scanService.processImageScan...`);
       const scanResult = await scanService.processImageScan(imageUrl, userId, productId);
       
-      console.log(`✅ [${requestId}] [SCAN_IMAGE] Service call successful:`, {
-        resultType: typeof scanResult,
-        hasData: !!scanResult,
-        timestamp: new Date().toISOString()
-      });
-
       const responseTime = Date.now() - startTime;
-      console.log(`🎯 [${requestId}] [SCAN_IMAGE] Request completed successfully in ${responseTime}ms`);
-
-      res.status(200).json({
-        success: true,
-        message: 'Image scan completed successfully',
-        data: scanResult
+      logger.info(`[SCAN_IMAGE] Request completed successfully`, {
+        requestId,
+        responseTime,
+        hasResult: !!scanResult
       });
+
+      return sendSuccess(res, scanResult, 'Image scan completed successfully');
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      console.error(`💥 [${requestId}] [SCAN_IMAGE] Error occurred after ${responseTime}ms:`, {
+      logger.error(`[SCAN_IMAGE] Error occurred`, {
+        requestId,
+        responseTime,
         error: error instanceof Error ? {
           name: error.name,
           message: error.message,
@@ -255,8 +202,7 @@ export class ScanController {
           method: req.method,
           url: req.url,
           body: req.body,
-          userId: req.user?.userId,
-          timestamp: new Date().toISOString()
+          userId: req.user?.userId
         }
       });
       next(error);
@@ -269,41 +215,21 @@ export class ScanController {
    */
   toggleSaveScan = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Bypass auth untuk development/testing
-      if (process.env.BYPASS_AUTH === 'true') {
-        console.log(`🔓 [TOGGLE_SAVE] Bypass auth enabled, using hardcoded user`);
-        // Set hardcoded user data
-        req.user = {
-          userId: process.env.HARDCODED_USER_ID || '1',
-          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
-          role: process.env.HARDCODED_USER_ROLE || 'user'
-        };
-      }
-
       const scanIdParam = req.params.scanId;
       
       if (!scanIdParam) {
-        return res.status(400).json({
-          success: false,
-          message: 'Scan ID is required'
-        });
+        return sendError(res, 'Scan ID is required', 400);
       }
       
       const scanId = parseInt(scanIdParam);
       
       if (isNaN(scanId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid scan ID'
-        });
+        return sendError(res, 'Invalid scan ID', 400);
       }
 
       // Pastikan user sudah login
       if (!req.user?.userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
+        return sendError(res, 'Authentication required', 401);
       }
 
       const userId = parseInt(req.user.userId);
@@ -311,11 +237,7 @@ export class ScanController {
       // Toggle save status
       const updatedScan = await scanService.toggleSaveScan(scanId, userId);
 
-      res.status(200).json({
-        success: true,
-        message: `Scan ${updatedScan.isSaved ? 'saved' : 'unsaved'} successfully`,
-        data: updatedScan
-      });
+      return sendSuccess(res, updatedScan, `Scan ${updatedScan.isSaved ? 'saved' : 'unsaved'} successfully`);
 
     } catch (error) {
       next(error);
@@ -330,22 +252,28 @@ export class ScanController {
   setProductList = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user?.userId) {
-        return res.status(401).json({ success: false, message: 'Authentication required' });
+        return sendError(res, 'Authentication required', 401);
       }
       const userId = parseInt(req.user.userId);
 
       const { productId, listType } = req.body as { productId?: number; listType?: 'RED' | 'GREEN' };
       if (!productId || typeof productId !== 'number') {
-        return res.status(400).json({ success: false, message: 'productId is required and must be a number' });
+        return sendError(res, 'productId is required and must be a number', 400);
       }
       if (listType && !['RED', 'GREEN'].includes(listType)) {
-        return res.status(400).json({ success: false, message: 'listType must be RED or GREEN' });
+        return sendError(res, 'listType must be RED or GREEN', 400);
       }
 
       if (!listType) {
         // remove preference
-        await prisma.user_product_preference.deleteMany({ where: { user_id: userId, product_id: productId } });
-        return res.status(200).json({ success: true, message: 'Preference removed' });
+        await prisma.user_product_preference.deleteMany({ 
+          where: { user_id: userId, product_id: productId } 
+        });
+        return sendSuccess(res, null, 'Preference removed');
+      }
+
+      if (!['RED', 'GREEN'].includes(listType)) {
+        return sendError(res, 'listType must be RED or GREEN', 400);
       }
 
       // upsert preference
@@ -355,7 +283,7 @@ export class ScanController {
         create: { user_id: userId, product_id: productId, list_type: listType },
       });
 
-      return res.status(200).json({ success: true, message: 'Preference updated', data: { productId, listType } });
+      return sendSuccess(res, { productId, listType }, 'Preference updated');
     } catch (error) {
       next(error);
     }
@@ -369,58 +297,34 @@ export class ScanController {
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(7);
     
-    console.log(`📚 [${requestId}] [SCAN_HISTORY] Request started:`, {
+    logger.info(`[SCAN_HISTORY] Request started`, {
+      requestId,
       method: req.method,
       url: req.url,
-      path: req.path,
       query: req.query,
-      headers: {
-        'user-agent': req.headers['user-agent'],
-        'content-type': req.headers['content-type'],
-        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
-      },
-      timestamp: new Date().toISOString()
+      userAgent: req.headers['user-agent'],
+      hasAuth: !!req.headers.authorization
     });
 
     try {
-      // Bypass auth untuk development/testing
-      if (process.env.BYPASS_AUTH === 'true') {
-        console.log(`🔓 [${requestId}] [SCAN_HISTORY] Bypass auth enabled, using hardcoded user`);
-        // Set hardcoded user data
-        req.user = {
-          userId: process.env.HARDCODED_USER_ID || '1',
-          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
-          role: process.env.HARDCODED_USER_ROLE || 'user'
-        };
-      }
-
       // Validasi query parameters
-      const { error: queryError, value: queryValue } = scanHistoryQuerySchema.validate(req.query);
-      if (queryError) {
-        console.log(`❌ [${requestId}] [SCAN_HISTORY] Validation error:`, queryError.details);
-        return res.status(400).json({
-          success: false,
-          message: 'Validation error',
-          errors: queryError.details.map(detail => ({
-            field: detail.path.join('.'),
-            message: detail.message
-          }))
-        });
+      const validation = validateRequest(scanHistoryQuerySchema, req.query);
+      if (!validation.isValid) {
+        logger.warn(`[SCAN_HISTORY] Validation error`, { requestId, errors: validation.errors });
+        return sendError(res, 'Validation error', 400, { errors: validation.errors ?? [] });
       }
 
       // Pastikan user sudah login
       if (!req.user?.userId) {
-        console.log(`❌ [${requestId}] [SCAN_HISTORY] Authentication failed: No user data`);
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
+        logger.warn(`[SCAN_HISTORY] Authentication failed`, { requestId });
+        return sendError(res, 'Authentication required', 401);
       }
 
       const userId = parseInt(req.user.userId);
-      const { limit, offset, savedOnly, uniqueByProduct, listType } = queryValue;
+      const { limit, offset, savedOnly, uniqueByProduct, listType } = validation.value!;
 
-      console.log(`✅ [${requestId}] [SCAN_HISTORY] Validation passed:`, {
+      logger.info(`[SCAN_HISTORY] Processing request`, {
+        requestId,
         userId,
         limit,
         offset,
@@ -430,7 +334,6 @@ export class ScanController {
       });
 
       // Ambil riwayat scan
-      console.log(`🔄 [${requestId}] [SCAN_HISTORY] Calling scanService.getUserScanHistory...`);
       const scanHistoryResult = await scanService.getUserScanHistory(userId, {
         limit,
         offset,
@@ -439,31 +342,28 @@ export class ScanController {
         listType,
       });
       
-      console.log(`✅ [${requestId}] [SCAN_HISTORY] Service call successful:`, {
-        resultCount: scanHistoryResult.scans.length,
-        total: scanHistoryResult.total,
-        timestamp: new Date().toISOString()
-      });
-
       const responseTime = Date.now() - startTime;
-      console.log(`🎯 [${requestId}] [SCAN_HISTORY] Request completed successfully in ${responseTime}ms`);
-
-      res.status(200).json({
-        success: true,
-        message: 'Scan history retrieved successfully',
-        data: {
-          scans: scanHistoryResult.scans,
-          pagination: {
-            limit,
-            offset,
-            total: scanHistoryResult.total
-          }
-        }
+      logger.info(`[SCAN_HISTORY] Request completed successfully`, {
+        requestId,
+        responseTime,
+        resultCount: scanHistoryResult.scans.length,
+        total: scanHistoryResult.total
       });
+
+      return sendSuccess(res, {
+        scans: scanHistoryResult.scans,
+        pagination: {
+          limit,
+          offset,
+          total: scanHistoryResult.total
+        }
+      }, 'Scan history retrieved successfully');
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      console.error(`💥 [${requestId}] [SCAN_HISTORY] Error occurred after ${responseTime}ms:`, {
+      logger.error(`[SCAN_HISTORY] Error occurred`, {
+        requestId,
+        responseTime,
         error: error instanceof Error ? {
           name: error.name,
           message: error.message,
@@ -473,8 +373,7 @@ export class ScanController {
           method: req.method,
           url: req.url,
           query: req.query,
-          userId: req.user?.userId,
-          timestamp: new Date().toISOString()
+          userId: req.user?.userId
         }
       });
       next(error);
@@ -487,13 +386,30 @@ export class ScanController {
    */
   getSavedScans = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Set savedOnly = true dan forward ke getScanHistory
-      req.query.savedOnly = 'true';
-      // Forward optional filters
-      if (!('uniqueByProduct' in req.query)) {
-        req.query.uniqueByProduct = 'true';
+      // Pastikan user sudah login
+      if (!req.user?.userId) {
+        return sendError(res, 'Authentication required', 401);
       }
-      return await this.getScanHistory(req, res, next);
+
+      const userId = parseInt(req.user.userId);
+      const { limit = 20, offset = 0 } = req.query;
+
+      // Langsung panggil service dengan parameter yang tepat
+      const savedScansResult = await scanService.getUserScanHistory(userId, {
+        limit: Number(limit),
+        offset: Number(offset),
+        savedOnly: true,
+        uniqueByProduct: true,
+      });
+
+      return sendSuccess(res, {
+        scans: savedScansResult.scans,
+        pagination: {
+          limit: Number(limit),
+          offset: Number(offset),
+          total: savedScansResult.total
+        }
+      }, 'Saved scans retrieved successfully');
     } catch (error) {
       next(error);
     }
@@ -507,61 +423,39 @@ export class ScanController {
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(7);
     
-    console.log(`📸 [${requestId}] [UPLOAD_SCAN] Request started:`, {
+    logger.info(`[UPLOAD_SCAN] Request started`, {
+      requestId,
       method: req.method,
       url: req.url,
-      path: req.path,
-      headers: {
-        'user-agent': req.headers['user-agent'],
-        'content-type': req.headers['content-type'],
-        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
-      },
-      timestamp: new Date().toISOString()
+      userAgent: req.headers['user-agent'],
+      contentType: req.headers['content-type'],
+      hasAuth: !!req.headers.authorization
     });
 
     try {
-      // Bypass auth untuk development/testing
-      if (process.env.BYPASS_AUTH === 'true') {
-        console.log(`🔓 [${requestId}] [UPLOAD_SCAN] Bypass auth enabled, using hardcoded user`);
-        // Set hardcoded user data
-        req.user = {
-          userId: process.env.HARDCODED_USER_ID || '1',
-          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
-          role: process.env.HARDCODED_USER_ROLE || 'user'
-        };
-      }
-
       // Pastikan user sudah login
       if (!req.user?.userId) {
-        console.log(`❌ [${requestId}] [UPLOAD_SCAN] Authentication failed: No user data`);
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
+        logger.warn(`[UPLOAD_SCAN] Authentication failed`, { requestId });
+        return sendError(res, 'Authentication required', 401);
       }
 
       // Validasi file upload
       if (!req.file) {
-        console.log(`❌ [${requestId}] [UPLOAD_SCAN] No image file uploaded`);
-        return res.status(400).json({
-          success: false,
-          message: 'Image file is required'
-        });
+        logger.warn(`[UPLOAD_SCAN] No image file uploaded`, { requestId });
+        return sendError(res, 'Image file is required', 400);
       }
 
       // Validasi file type
       if (!req.file.mimetype.startsWith('image/')) {
-        console.log(`❌ [${requestId}] [UPLOAD_SCAN] Invalid file type: ${req.file.mimetype}`);
-        return res.status(400).json({
-          success: false,
-          message: 'Only image files are allowed'
-        });
+        logger.warn(`[UPLOAD_SCAN] Invalid file type`, { requestId, mimetype: req.file.mimetype });
+        return sendError(res, 'Only image files are allowed', 400);
       }
 
       const userId = parseInt(req.user.userId);
       const productName = req.body.productName || undefined;
 
-      console.log(`✅ [${requestId}] [UPLOAD_SCAN] Validation passed:`, {
+      logger.info(`[UPLOAD_SCAN] Processing upload`, {
+        requestId,
         userId,
         userEmail: req.user.email,
         userRole: req.user.role,
@@ -572,35 +466,31 @@ export class ScanController {
       });
 
       // Proses upload dan scan
-      console.log(`🔄 [${requestId}] [UPLOAD_SCAN] Calling scanService.processImageUpload...`);
       const scanResult = await scanService.processImageUpload(
         req.file.buffer,
         userId,
         productName
       );
       
-      console.log(`✅ [${requestId}] [UPLOAD_SCAN] Service call successful:`, {
+      const responseTime = Date.now() - startTime;
+      logger.info(`[UPLOAD_SCAN] Request completed successfully`, {
+        requestId,
+        responseTime,
         scanResult: {
           id: scanResult.id,
           productId: scanResult.productId,
           riskLevel: scanResult.riskLevel,
           matchedAllergens: scanResult.matchedAllergens
-        },
-        timestamp: new Date().toISOString()
+        }
       });
 
-      const responseTime = Date.now() - startTime;
-      console.log(`🎯 [${requestId}] [UPLOAD_SCAN] Request completed successfully in ${responseTime}ms`);
-
-      res.status(200).json({
-        success: true,
-        message: 'Image uploaded and analyzed successfully',
-        data: scanResult
-      });
+      return sendSuccess(res, scanResult, 'Image uploaded and analyzed successfully');
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      console.error(`💥 [${requestId}] [UPLOAD_SCAN] Error occurred after ${responseTime}ms:`, {
+      logger.error(`[UPLOAD_SCAN] Error occurred`, {
+        requestId,
+        responseTime,
         error: error instanceof Error ? {
           name: error.name,
           message: error.message,
@@ -610,8 +500,7 @@ export class ScanController {
           method: req.method,
           url: req.url,
           userId: req.user?.userId,
-          fileName: req.file?.originalname,
-          timestamp: new Date().toISOString()
+          fileName: req.file?.originalname
         }
       });
       next(error);
@@ -626,80 +515,59 @@ export class ScanController {
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(7);
     
-    console.log(`📊 [${requestId}] [SCAN_LIMIT] Request started:`, {
+    logger.info(`[SCAN_LIMIT] Request started`, {
+      requestId,
       method: req.method,
       url: req.url,
-      path: req.path,
-      headers: {
-        'user-agent': req.headers['user-agent'],
-        'content-type': req.headers['content-type'],
-        'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
-      },
-      timestamp: new Date().toISOString()
+      userAgent: req.headers['user-agent'],
+      hasAuth: !!req.headers.authorization
     });
 
     try {
-      // Bypass auth untuk development/testing
-      if (process.env.BYPASS_AUTH === 'true') {
-        console.log(`🔓 [${requestId}] [SCAN_LIMIT] Bypass auth enabled, using hardcoded user`);
-        // Set hardcoded user data
-        req.user = {
-          userId: process.env.HARDCODED_USER_ID || '1',
-          email: process.env.HARDCODED_USER_EMAIL || 'test@example.com',
-          role: process.env.HARDCODED_USER_ROLE || 'user'
-        };
-      }
-
       // Pastikan user sudah login
       if (!req.user?.userId) {
-        console.log(`❌ [${requestId}] [SCAN_LIMIT] Authentication failed: No user data`);
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
+        logger.warn(`[SCAN_LIMIT] Authentication failed`, { requestId });
+        return sendError(res, 'Authentication required', 401);
       }
 
       const userId = parseInt(req.user.userId);
 
-      console.log(`✅ [${requestId}] [SCAN_LIMIT] Validation passed:`, {
+      logger.info(`[SCAN_LIMIT] Processing request`, {
+        requestId,
         userId,
         userEmail: req.user.email,
         userRole: req.user.role
       });
 
       // Ambil informasi scan limit
-      console.log(`🔄 [${requestId}] [SCAN_LIMIT] Calling scanLimitService.getUserDailyScanLimit...`);
       const limitInfo = await scanLimitService.getUserDailyScanLimit(userId);
       
-      console.log(`✅ [${requestId}] [SCAN_LIMIT] Service call successful:`, {
+      const responseTime = Date.now() - startTime;
+      logger.info(`[SCAN_LIMIT] Request completed successfully`, {
+        requestId,
+        responseTime,
         limitInfo: {
           userId: limitInfo.userId,
           currentUsage: limitInfo.currentUsage,
           dailyLimit: limitInfo.dailyLimit,
           remainingScans: limitInfo.remainingScans
-        },
-        timestamp: new Date().toISOString()
-      });
-
-      const responseTime = Date.now() - startTime;
-      console.log(`🎯 [${requestId}] [SCAN_LIMIT] Request completed successfully in ${responseTime}ms`);
-
-      res.status(200).json({
-        success: true,
-        message: 'Scan limit information retrieved successfully',
-        data: {
-          userId: limitInfo.userId,
-          currentUsage: limitInfo.currentUsage,
-          dailyLimit: limitInfo.dailyLimit,
-          remainingScans: limitInfo.remainingScans,
-          isLimitExceeded: limitInfo.isLimitExceeded,
-          canScan: !limitInfo.isLimitExceeded
         }
       });
 
+      return sendSuccess(res, {
+        userId: limitInfo.userId,
+        currentUsage: limitInfo.currentUsage,
+        dailyLimit: limitInfo.dailyLimit,
+        remainingScans: limitInfo.remainingScans,
+        isLimitExceeded: limitInfo.isLimitExceeded,
+        canScan: !limitInfo.isLimitExceeded
+      }, 'Scan limit information retrieved successfully');
+
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      console.error(`💥 [${requestId}] [SCAN_LIMIT] Error occurred after ${responseTime}ms:`, {
+      logger.error(`[SCAN_LIMIT] Error occurred`, {
+        requestId,
+        responseTime,
         error: error instanceof Error ? {
           name: error.name,
           message: error.message,
@@ -708,8 +576,7 @@ export class ScanController {
         requestInfo: {
           method: req.method,
           url: req.url,
-          userId: req.user?.userId,
-          timestamp: new Date().toISOString()
+          userId: req.user?.userId
         }
       });
       next(error);
