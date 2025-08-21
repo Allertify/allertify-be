@@ -13,7 +13,9 @@ import { errorHandler } from './middlewares/error.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { logger } from './utils/logger';
-
+import userRoutes from './routes/user.routes';
+import productRoutes from './routes/product.routes';
+import adminRoutes from './routes/admin.routes';
 
 dotenv.config();
 
@@ -94,9 +96,11 @@ app.use((req, res, next) => {
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
-// app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/scans', scanRoutes);
 app.use('/api/v1/subscriptions', subscriptionRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 //error handler
 app.use(errorHandler);
