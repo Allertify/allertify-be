@@ -6,7 +6,7 @@ pipeline {
         DOCKER_IMAGE = 'allertify-be'
         DOCKER_TAG = "${BUILD_NUMBER}"
 
-         // Environment variables for production
+        // Environment variables for production
         DATABASE_URL = env.DATABASE_URL ?: 'postgresql://allertify:12345678@localhost:5437/allertify'
         JWT_ACCESS_SECRET = env.JWT_ACCESS_SECRET ?: '4lL3rT1FFy_BE_ACC'
         JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET ?: '4lL3rT1FFy_BE_RFR'
