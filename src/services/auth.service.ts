@@ -191,6 +191,9 @@ export async function loginUser(input: { email: string; password: string }) {
       data: { last_login: new Date() },
     });
   } catch {}
+  // Log user object untuk debug
+  console.log('🔍 [LOGIN] User object from database:', JSON.stringify(user, null, 2));
+  
   return {
     ok: true as const,
     accessToken,

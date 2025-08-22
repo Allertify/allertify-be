@@ -8,6 +8,14 @@ try {
   dotenv.config();
 }
 
+// Ensure JWT secrets exist for tests
+if (!process.env.JWT_ACCESS_SECRET) {
+  process.env.JWT_ACCESS_SECRET = 'test-access-secret';
+}
+if (!process.env.JWT_REFRESH_SECRET) {
+  process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
+}
+
 // Jest globals are available without import in test files
 declare const beforeAll: (fn: () => void | Promise<void>) => void;
 declare const afterAll: (fn: () => void | Promise<void>) => void;

@@ -292,9 +292,28 @@ router.get('/history', asyncHandler(scanController.getScanHistory));
  *     tags:
  *       - Scan
  *     summary: Ambil scan yang disimpan
- *     description: Mendapatkan semua scan yang disimpan user
+ *     description: Mendapatkan semua scan yang disimpan user dengan optional listType filter
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Jumlah scan per halaman
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Offset untuk pagination
+ *       - in: query
+ *         name: listType
+ *         schema:
+ *           type: string
+ *           enum: [RED, GREEN]
+ *         description: Filter berdasarkan list type (optional)
  *     responses:
  *       200:
  *         description: Scan yang disimpan berhasil diambil
@@ -305,9 +324,14 @@ router.get('/history', asyncHandler(scanController.getScanHistory));
  *                 - $ref: '#/definitions/SuccessResponse'
  *                 - properties:
  *                     data:
- *                       type: array
- *                       items:
- *                         $ref: '#/definitions/ScanResult'
+ *                       type: object
+ *                       properties:
+ *                         scans:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/definitions/ScanResult'
+ *                         pagination:
+ *                           $ref: '#/definitions/Pagination'
  *       401:
  *         description: Unauthorized - token tidak valid
  */
@@ -360,5 +384,74 @@ router.get('/saved', asyncHandler(scanController.getSavedScans));
  *         description: Produk tidak ditemukan
  */
 router.post('/list', asyncHandler(scanController.setProductList));
+
+/**
+ * @swagger
+ * /scans/list:
+ *   get:
+ *     tags:
+ *       - Scan
+ *     summary: Get list products
+ *     description: Mendapatkan produk berdasarkan listType (RED/GREEN) atau semua produk dengan preference
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Jumlah produk per halaman
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Offset untuk pagination
+ *       - in: query
+ *         name: listType
+ *         schema:
+ *           type: string
+ *           enum: [RED, GREEN]
+ *         description: Filter berdasarkan list type (optional - jika tidak ada akan return semua)
+ *     responses:
+ *       200:
+ *         description: List products retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/definitions/SuccessResponse'
+ *                 - properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         products:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               name:
+ *                                 type: string
+ *                               barcode:
+ *                                 type: string
+ *                               imageUrl:
+ *                                 type: string
+ *                               ingredients:
+ *                                 type: string
+ *                               listType:
+ *                                 type: string
+ *                                 enum: [RED, GREEN]
+ *                               addedAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                         pagination:
+ *                           $ref: '#/definitions/Pagination'
+ *       401:
+ *         description: Unauthorized - token tidak valid
+ */
+router.get('/list', asyncHandler(scanController.getListProducts));
 
 export default router;

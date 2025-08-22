@@ -90,3 +90,18 @@ export const transformEmergencyContact = (contact: any) => ({
   createdAt: contact.createdAt,
   updatedAt: contact.updatedAt
 });
+
+/**
+ * Transform user allergies with allergen details
+ */
+export const transformUserAllergies = (allergies: any[]) => {
+  return allergies.map(allergy => ({
+    id: allergy.id,
+    allergen: {
+      id: allergy.allergen.id,
+      name: allergy.allergen.name,
+      description: allergy.allergen.description
+    },
+    securityLevel: allergy.security_level
+  }));
+};

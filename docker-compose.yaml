@@ -8,29 +8,26 @@ services:
       POSTGRES_DB: allertify
       POSTGRES_USER: allertify
       POSTGRES_PASSWORD: 12345678
+      # Enable WAL archiving for point-in-time recovery
+      POSTGRES_INITDB_ARGS: "--wal-level=replica --archive-mode=on --archive-command='test ! -f /var/lib/postgresql/backup/archive/%f && cp %p /var/lib/postgresql/backup/archive/%f'"
     ports:
       - "0.0.0.0:5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - postgres_backup:/var/lib/postgresql/backup
+      - ./backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U allertify"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # Redis (for caching and session storage)
-  redis:
-    image: redis:7-alpine
-    container_name: allertify-redis
-    ports:
-      - "127.0.0.1:6371:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    command: >
+      postgres
+      -c wal_level=replica
+      -c archive_mode=on
+      -c archive_command='test ! -f /var/lib/postgresql/backup/archive/%f && cp %p /var/lib/postgresql/backup/archive/%f'
+      -c max_wal_senders=3
+      -c wal_keep_size=1GB
 
   # Backend Application
   backend:
@@ -44,9 +41,8 @@ services:
       NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgresql://allertify:12345678@postgres:5432/allertify
-      JWT_ACCESS_SECRET: 4lL3rT1FFy_BE
-      JWT_REFRESH_SECRET: 4lL3rT1FFy_BE
-      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       # Cloudinary Configuration
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
@@ -60,8 +56,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     volumes:
       - ./logs:/app/logs
     healthcheck:
@@ -72,4 +66,4 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
+  postgres_backup:

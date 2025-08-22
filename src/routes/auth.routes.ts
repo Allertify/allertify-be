@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { registerController, verifyOtpController, loginController, forgotPasswordController, resetPasswordController, getPublicAllergensController } from "../controllers/auth.controller";
+import asyncHandler from '../middlewares/asyncHandler';
 
 const router = Router();
 
@@ -37,7 +38,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/definitions/ErrorResponse'
  */
-router.post("/register", registerController);
+router.post("/register", asyncHandler(registerController));
 
 /**
  * @swagger
@@ -67,7 +68,7 @@ router.post("/register", registerController);
  *             schema:
  *               $ref: '#/definitions/ErrorResponse'
  */
-router.post("/otp", verifyOtpController);
+router.post("/otp", asyncHandler(verifyOtpController));
 
 /**
  * @swagger
@@ -107,7 +108,7 @@ router.post("/otp", verifyOtpController);
  *             schema:
  *               $ref: '#/definitions/ErrorResponse'
  */
-router.post("/login", loginController);
+router.post("/login", asyncHandler(loginController));
 
 /**
  * @swagger
@@ -130,7 +131,7 @@ router.post("/login", loginController);
  *       200:
  *         description: Reset token sent if email exists
  */
-router.post("/forgot-password", forgotPasswordController);
+router.post("/forgot-password", asyncHandler(forgotPasswordController));
 
 /**
  * @swagger
@@ -152,7 +153,7 @@ router.post("/forgot-password", forgotPasswordController);
  *       200:
  *         description: Password updated
  */
-router.post("/reset-password", resetPasswordController);
+router.post("/reset-password", asyncHandler(resetPasswordController));
 
 /**
  * @swagger
@@ -217,6 +218,6 @@ router.post("/reset-password", resetPasswordController);
  *                         total:
  *                           type: integer
  */
-router.get("/allergens", getPublicAllergensController);
+router.get("/allergens", asyncHandler(getPublicAllergensController));
 
 export default router;

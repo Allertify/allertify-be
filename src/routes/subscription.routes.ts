@@ -8,6 +8,7 @@ import {
   getSubscriptionLimits
 } from '../controllers/subscription.controller';
 import { authenticateToken } from '../middlewares/auth.middleware';
+import asyncHandler from '../middlewares/asyncHandler';
 
 const router = Router();
 
@@ -39,7 +40,7 @@ const router = Router();
  *                       items:
  *                         $ref: '#/components/schemas/TierPlan'
  */
-router.get('/plans', getTierPlans);
+router.get('/plans', asyncHandler(getTierPlans));
 
 /**
  * @swagger
@@ -102,8 +103,8 @@ router.get('/plans', getTierPlans);
  *       404:
  *         description: No active subscription found
  */
-router.get('/me', authenticateToken, getUserSubscription);
-router.delete('/me', authenticateToken, cancelSubscription);
+router.get('/me', authenticateToken, asyncHandler(getUserSubscription));
+router.delete('/me', authenticateToken, asyncHandler(cancelSubscription));
 
 /**
  * @swagger
@@ -152,7 +153,7 @@ router.delete('/me', authenticateToken, cancelSubscription);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.get('/me/history', authenticateToken, getUserSubscriptionHistory);
+router.get('/me/history', authenticateToken, asyncHandler(getUserSubscriptionHistory));
 
 /**
  * @swagger
@@ -209,7 +210,7 @@ router.get('/me/history', authenticateToken, getUserSubscriptionHistory);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.get('/me/limits', authenticateToken, getSubscriptionLimits);
+router.get('/me/limits', authenticateToken, asyncHandler(getSubscriptionLimits));
 
 /**
  * @swagger
@@ -263,6 +264,6 @@ router.get('/me/limits', authenticateToken, getSubscriptionLimits);
  *       404:
  *         description: Tier plan not found
  */
-router.post('/upgrade', authenticateToken, upgradeSubscription);
+router.post('/upgrade', authenticateToken, asyncHandler(upgradeSubscription));
 
 export default router;

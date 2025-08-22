@@ -76,6 +76,11 @@ export const loginController = asyncHandler(async (req, res) => {
         return sendError(res, "Login failed", 401);
     }
 
+    // Log untuk debug
+    console.log('🔍 [LOGIN] Raw user from service:', JSON.stringify(result.user, null, 2));
+    const transformedUser = transformUser(result.user);
+    console.log('🔍 [LOGIN] Transformed user:', JSON.stringify(transformedUser, null, 2));
+    
     return sendSuccess(res, {
         accessToken: result.accessToken,
         user: transformUser(result.user)

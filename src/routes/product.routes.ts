@@ -1,12 +1,13 @@
 import { Router } from 'express';
-import { 
+import { authenticateToken } from '../middlewares/auth.middleware';
+import asyncHandler from '../middlewares/asyncHandler';
+import {
   getProductDetail,
   searchProducts,
   reportProduct,
   getUserReports,
   getPopularProducts
 } from '../controllers/product.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -58,7 +59,7 @@ const router = Router();
  *                     pagination:
  *                       $ref: '#/components/schemas/Pagination'
  */
-router.get('/search', searchProducts);
+router.get('/search', asyncHandler(searchProducts));
 
 /**
  * @swagger
@@ -95,7 +96,7 @@ router.get('/search', searchProducts);
  *                       items:
  *                         $ref: '#/components/schemas/Product'
  */
-router.get('/popular', getPopularProducts);
+router.get('/popular', asyncHandler(getPopularProducts));
 
 /**
  * @swagger
@@ -144,7 +145,7 @@ router.get('/popular', getPopularProducts);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-router.get('/reports/my', authenticateToken, getUserReports);
+router.get('/reports/my', authenticateToken, asyncHandler(getUserReports));
 
 /**
  * @swagger
@@ -219,7 +220,7 @@ router.get('/reports/my', authenticateToken, getUserReports);
  *       404:
  *         description: Product not found
  */
-router.get('/:productId', getProductDetail);
+router.get('/:productId', asyncHandler(getProductDetail));
 
 /**
  * @swagger
@@ -296,6 +297,6 @@ router.get('/:productId', getProductDetail);
  *       409:
  *         description: User has already reported this product
  */
-router.post('/:productId/report', authenticateToken, reportProduct);
+router.post('/:productId/report', authenticateToken, asyncHandler(reportProduct));
 
 export default router;

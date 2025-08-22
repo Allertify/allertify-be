@@ -16,7 +16,7 @@ import { logger } from './utils/logger';
 import userRoutes from './routes/user.routes';
 import productRoutes from './routes/product.routes';
 import adminRoutes from './routes/admin.routes';
- import { createAdminRouter } from './config/adminjs.config';
+import { createAdminRouter } from './config/adminjs.config';
 
 
 

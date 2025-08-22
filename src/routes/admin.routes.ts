@@ -15,6 +15,7 @@ import {
   deleteAllergen,
 } from '../controllers/admin.controller';
 import { authenticateToken, requireAdmin } from '../middlewares/auth.middleware';
+import asyncHandler from '../middlewares/asyncHandler';
 
 const router = Router();
 
@@ -110,7 +111,7 @@ router.use(authenticateToken, requireAdmin);
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  */
-router.get('/dashboard', getDashboard);
+router.get('/dashboard', asyncHandler(getDashboard));
 
 /**
  * @swagger
@@ -165,7 +166,7 @@ router.get('/dashboard', getDashboard);
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  */
-router.get('/analytics', getAnalytics);
+router.get('/analytics', asyncHandler(getAnalytics));
 
 /**
  * @swagger
@@ -233,7 +234,7 @@ router.get('/analytics', getAnalytics);
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  */
-router.get('/users', getAllUsers);
+router.get('/users', asyncHandler(getAllUsers));
 
 /**
  * @swagger
@@ -378,9 +379,9 @@ router.get('/users', getAllUsers);
  *       404:
  *         description: User not found
  */
-router.get('/users/:userId', getUserById);
-router.put('/users/:userId', updateUser);
-router.delete('/users/:userId', deleteUser);
+router.get('/users/:userId', asyncHandler(getUserById));
+router.put('/users/:userId', asyncHandler(updateUser));
+router.delete('/users/:userId', asyncHandler(deleteUser));
 
 /**
  * @swagger
@@ -437,7 +438,7 @@ router.delete('/users/:userId', deleteUser);
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  */
-router.get('/reports', getAllReports);
+router.get('/reports', asyncHandler(getAllReports));
 
 /**
  * @swagger
@@ -495,7 +496,7 @@ router.get('/reports', getAllReports);
  *       404:
  *         description: Report not found
  */
-router.put('/reports/:reportId', updateReportStatus);
+router.put('/reports/:reportId', asyncHandler(updateReportStatus));
 
 /**
  * @swagger
@@ -545,7 +546,7 @@ router.put('/reports/:reportId', updateReportStatus);
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  */
-router.get('/subscriptions/stats', getSubscriptionStats);
+router.get('/subscriptions/stats', asyncHandler(getSubscriptionStats));
 
 /** Allergen management */
 /**
@@ -583,8 +584,8 @@ router.get('/subscriptions/stats', getSubscriptionStats);
  *               description: { type: string }
  *               is_custom: { type: boolean }
  */
-router.get('/allergens', listAllergens);
-router.post('/allergens', createAllergen);
+router.get('/allergens', asyncHandler(listAllergens));
+router.post('/allergens', asyncHandler(createAllergen));
 /**
  * @swagger
  * /api/v1/admin/allergens/{id}:
@@ -619,7 +620,7 @@ router.post('/allergens', createAllergen);
  *         required: true
  *         schema: { type: integer }
  */
-router.put('/allergens/:id', updateAllergen);
-router.delete('/allergens/:id', deleteAllergen);
+router.put('/allergens/:id', asyncHandler(updateAllergen));
+router.delete('/allergens/:id', asyncHandler(deleteAllergen));
 
 export default router;

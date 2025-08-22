@@ -13,8 +13,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "setup:admin": "node scripts/setup-admin.js",
-    "setup:env": "node scripts/setup-env.js",
+    "backup": "node scripts/backup-database.js",
+    "restore": "node scripts/restore-database.js",
+    "backup:list": "node scripts/restore-database.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\""
