@@ -101,7 +101,7 @@ Allertify Backend adalah RESTful API yang dibangun dengan Node.js dan TypeScript
 
 ### Entity Relational Diagram
 <img width="1457" height="1072" alt="Image" src="https://github.com/user-attachments/assets/722824a1-3fe7-4a8e-9625-ab3fdd037c3b" />
-
+https://miro.com/app/board/uXjVJV8BZn4=/?moveToWidget=3458764637279385595&cot=14
 ### CI/CD Overview
 <img width="1824" height="183" alt="Image" src="https://github.com/user-attachments/assets/4b0f0e13-b367-40f9-b93e-792f68bb7ca6" />
 
