@@ -6,6 +6,7 @@ import asyncHandler from "../middlewares/asyncHandler";
 import { logger } from "../utils/logger";
 import { sendSuccess, sendError } from "../utils/response";
 import { validateRequest } from "../utils/validation";
+import { transformUser } from "../utils/transform";
 
 export const registerController = asyncHandler(async (req: Request, res: Response) => {
     const validation = validateRequest(registerSchema, req.body);
@@ -53,13 +54,7 @@ export const verifyOtpController = asyncHandler(async (req: Request, res: Respon
 
     return sendSuccess(res, {
         accessToken: result.accessToken,
-        user: {
-            id: result.user.id,
-            email: result.user.email,
-            fullName: result.user.full_name,
-            isVerified: result.user.is_verified,
-            role: result.user.role,
-        },
+        user: transformUser(result.user),
         subscription: subscription
     }, "Account verified");
 });
@@ -83,13 +78,7 @@ export const loginController = asyncHandler(async (req, res) => {
 
     return sendSuccess(res, {
         accessToken: result.accessToken,
-        user: {
-            id: result.user.id,
-            email: result.user.email,
-            fullName: result.user.full_name,
-            isVerified: result.user.is_verified,
-            role: result.user.role,
-        }
+        user: transformUser(result.user)
     }, "Login successful");
 });
 

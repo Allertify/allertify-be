@@ -37,7 +37,7 @@ export async function createUser(input: {
         password: hashed,
         phone_number: input.phone_number,
         is_verified: false,
-        role: 0, // default
+        role: 0, 
         profile_picture_url: null,
       },
       select: { id: true },
@@ -152,13 +152,7 @@ export async function verifyOtpAndIssueToken(input: {
   return {
     ok: true as const,
     accessToken,
-    user: {
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      is_verified: true,
-      role: user.role,
-    },
+    user: user,
   };
 }
 
@@ -200,13 +194,7 @@ export async function loginUser(input: { email: string; password: string }) {
   return {
     ok: true as const,
     accessToken,
-    user: {
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      is_verified: user.is_verified,
-      role: user.role,
-    },
+    user: user, // Return full user object
   };
 }
 

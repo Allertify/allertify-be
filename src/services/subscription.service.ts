@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import subscriptionService from './subscription.service';
 
 const prisma = new PrismaClient();
 

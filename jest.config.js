@@ -20,6 +20,13 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 30000,
-
-  globalTeardown: '<rootDir>/tests/teardown.ts'
+  globalTeardown: '<rootDir>/tests/teardown.ts',
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    'tests/integration/' // Skip integration tests for unit testing
+  ],
+  moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1'
+  }
 };

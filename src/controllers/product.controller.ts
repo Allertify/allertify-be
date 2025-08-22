@@ -1,12 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import asyncHandler from '../middlewares/asyncHandler';
 import productService from '../services/product.service';
-import Joi from 'joi';
 import { sendSuccess, sendError } from '../utils/response';
-import { validateRequest } from '../utils/validation';
-
-const prisma = new PrismaClient();
+import Joi from 'joi';
 
 // Validation schemas
 const reportProductSchema = Joi.object({
@@ -27,75 +23,17 @@ export const getProductDetail = asyncHandler(async (req: Request, res: Response)
   const productIdParam = req.params.productId;
   
   if (!productIdParam) {
-    return res.status(400).json({
-      success: false,
-      message: 'Product ID is required'
-    });
+    return sendError(res, 'Product ID is required', 400);
   }
   
   const productId = parseInt(productIdParam);
   
   if (isNaN(productId)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid product ID'
-    });
+    return sendError(res, 'Invalid product ID', 400);
   }
 
-  const product = await productService.findProductById(productId);
-
-  // Get scan statistics for this product
-  const scanStats = await prisma.product_scan.aggregate({
-    where: { product_id: productId },
-    _count: { id: true }
-  });
-
-  // Get risk level distribution
-  const riskDistribution = await prisma.product_scan.groupBy({
-    by: ['risk_level'],
-    where: { product_id: productId },
-    _count: { id: true }
-  });
-
-  // Get recent scans (last 10)
-  const recentScans = await prisma.product_scan.findMany({
-    where: { product_id: productId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          full_name: true
-        }
-      }
-    },
-    orderBy: { scan_date: 'desc' },
-    take: 10
-  });
-
-  res.status(200).json({
-    success: true,
-    message: 'Product detail retrieved successfully',
-    data: {
-      product,
-      statistics: {
-        total_scans: scanStats._count?.id || 0,
-        risk_distribution: riskDistribution.map(item => ({
-          risk_level: item.risk_level,
-          count: item._count.id
-        }))
-      },
-      recent_scans: recentScans.map(scan => ({
-        id: scan.id,
-        scan_date: scan.scan_date,
-        risk_level: scan.risk_level,
-        risk_explanation: scan.risk_explanation,
-        user: {
-          id: scan.user.id,
-          name: scan.user.full_name
-        }
-      }))
-    }
-  });
+  const detail = await productService.getProductDetailWithStats(productId);
+  return sendSuccess(res, detail, 'Product detail retrieved successfully');
 });
 
 /**
@@ -105,92 +43,14 @@ export const getProductDetail = asyncHandler(async (req: Request, res: Response)
 export const searchProducts = asyncHandler(async (req: Request, res: Response) => {
   const { error, value } = productSearchSchema.validate(req.query);
   if (error) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation error',
-      details: error.details.map(d => d.message)
+    return sendError(res, 'Validation error', 400, {
+      errors: error.details.map(d => ({ field: d.path.join('.'), message: d.message }))
     });
   }
 
   const { query, limit, offset } = value;
-
-  let products;
-  let total;
-
-  if (query) {
-    // Search by name or barcode
-    const whereClause = {
-      OR: [
-        {
-          name: {
-            contains: query,
-            mode: 'insensitive' as const
-          }
-        },
-        {
-          barcode: {
-            contains: query,
-            mode: 'insensitive' as const
-          }
-        }
-      ]
-    };
-
-    products = await prisma.product.findMany({
-      where: whereClause,
-      include: {
-        _count: {
-          select: {
-            product_scans: true
-          }
-        }
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: limit,
-      skip: offset
-    });
-
-    total = await prisma.product.count({
-      where: whereClause
-    });
-  } else {
-    // Get all products
-    products = await prisma.product.findMany({
-      include: {
-        _count: {
-          select: {
-            product_scans: true
-          }
-        }
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: limit,
-      skip: offset
-    });
-
-    total = await prisma.product.count();
-  }
-
-  res.status(200).json({
-    success: true,
-    message: 'Products retrieved successfully',
-    data: {
-      products: products.map(product => ({
-        id: product.id,
-        barcode: product.barcode,
-        name: product.name,
-        image_url: product.image_url,
-        nutritional_score: product.nutritional_score,
-        scan_count: product._count.product_scans,
-        updated_at: product.updatedAt
-      })),
-      pagination: {
-        limit,
-        offset,
-        total
-      }
-    }
-  });
+  const result = await productService.searchProducts(query, limit, offset);
+  return sendSuccess(res, result, 'Products retrieved successfully');
 });
 
 /**
@@ -202,78 +62,23 @@ export const reportProduct = asyncHandler(async (req: Request, res: Response) =>
   const productIdParam = req.params.productId;
   
   if (!productIdParam) {
-    return res.status(400).json({
-      success: false,
-      message: 'Product ID is required'
-    });
+    return sendError(res, 'Product ID is required', 400);
   }
   
   const productId = parseInt(productIdParam);
   
   if (isNaN(productId)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid product ID'
-    });
+    return sendError(res, 'Invalid product ID', 400);
   }
 
   const { error, value } = reportProductSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation error',
-      details: error.details.map(d => d.message)
+    return sendError(res, 'Validation error', 400, {
+      errors: error.details.map(d => ({ field: d.path.join('.'), message: d.message }))
     });
   }
-
-  // Check if product exists
-  const product = await productService.findProductById(productId);
-
-  // Check if user already reported this product
-  const existingReport = await prisma.product_report.findFirst({
-    where: {
-      user_id: userId,
-      product_id: productId,
-      status: 'PENDING'
-    }
-  });
-
-  if (existingReport) {
-    return res.status(409).json({
-      success: false,
-      message: 'You have already reported this product'
-    });
-  }
-
-  const report = await prisma.product_report.create({
-    data: {
-      user_id: userId,
-      product_id: productId,
-      report_details: value.report_details,
-      status: 'PENDING'
-    },
-    include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-          barcode: true
-        }
-      }
-    }
-  });
-
-  res.status(201).json({
-    success: true,
-    message: 'Product report submitted successfully',
-    data: {
-      report_id: report.id,
-      product: report.product,
-      report_details: report.report_details,
-      status: report.status,
-      created_at: report.createdAt
-    }
-  });
+  const report = await productService.reportProduct(userId, productId, value.report_details);
+  return sendSuccess(res, report, 'Product report submitted successfully', 201);
 });
 
 /**
@@ -286,46 +91,8 @@ export const getUserReports = asyncHandler(async (req: Request, res: Response) =
   const { limit = 20, offset = 0 } = req.query;
   const parsedLimit = parseInt(limit as string);
   const parsedOffset = parseInt(offset as string);
-
-  const reports = await prisma.product_report.findMany({
-    where: { user_id: userId },
-    include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-          barcode: true,
-          image_url: true
-        }
-      }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: parsedLimit,
-    skip: parsedOffset
-  });
-
-  const total = await prisma.product_report.count({
-    where: { user_id: userId }
-  });
-
-  res.status(200).json({
-    success: true,
-    message: 'User reports retrieved successfully',
-    data: {
-      reports: reports.map(report => ({
-        id: report.id,
-        product: report.product,
-        report_details: report.report_details,
-        status: report.status,
-        created_at: report.createdAt
-      })),
-      pagination: {
-        limit: parsedLimit,
-        offset: parsedOffset,
-        total
-      }
-    }
-  });
+  const result = await productService.getUserReports(userId, parsedLimit, parsedOffset);
+  return sendSuccess(res, result, 'User reports retrieved successfully');
 });
 
 /**
@@ -335,35 +102,6 @@ export const getUserReports = asyncHandler(async (req: Request, res: Response) =
 export const getPopularProducts = asyncHandler(async (req: Request, res: Response) => {
   const { limit = 10 } = req.query;
   const parsedLimit = parseInt(limit as string);
-
-  const popularProducts = await prisma.product.findMany({
-    include: {
-      _count: {
-        select: {
-          product_scans: true
-        }
-      }
-    },
-    orderBy: {
-      product_scans: {
-        _count: 'desc'
-      }
-    },
-    take: parsedLimit
-  });
-
-  res.status(200).json({
-    success: true,
-    message: 'Popular products retrieved successfully',
-    data: {
-      products: popularProducts.map(product => ({
-        id: product.id,
-        barcode: product.barcode,
-        name: product.name,
-        image_url: product.image_url,
-        nutritional_score: product.nutritional_score,
-        scan_count: product._count.product_scans
-      }))
-    }
-  });
+  const data = await productService.getPopularProducts(parsedLimit);
+  return sendSuccess(res, data, 'Popular products retrieved successfully');
 });

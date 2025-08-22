@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import productService from './product.service';
-import aiService, { AIEvaluation } from './ai.service';
+import aiService from './ai.service';
 import scanLimitService from './scan-limit.service';
 import cloudinaryService from './cloudinary.service';
 import { formatDateInTimeZone, getDefaultTimeZone } from '../utils/time.util';
