@@ -52,6 +52,7 @@ export const cleanDatabase = async () => {
   await prisma.user_product_preference.deleteMany();
   await prisma.subscription.deleteMany();
   await prisma.daily_scan_usage.deleteMany();
+  await prisma.email_verification.deleteMany();
   await prisma.user.deleteMany();
   await prisma.product.deleteMany();
   await prisma.allergen.deleteMany();

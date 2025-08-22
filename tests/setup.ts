@@ -8,6 +8,14 @@ try {
   dotenv.config();
 }
 
+// env for auth
+process.env.JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'test-access-secret';
+process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-refresh-secret';
+
+process.env.SMTP_USER = process.env.SMTP_USER || 'dummy@gmail.com';
+process.env.SMTP_PASS = process.env.SMTP_PASS || 'dummy-pass';
+process.env.SMTP_FROM = process.env.SMTP_FROM || 'Allertify Test <test@gmail.com>';
+
 // Jest globals are available without import in test files
 declare const beforeAll: (fn: () => void | Promise<void>) => void;
 declare const afterAll: (fn: () => void | Promise<void>) => void;
