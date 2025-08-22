@@ -13,7 +13,6 @@ pipeline {
         stage('Initialize Environment') {
             steps {
                 script {
-                    // Di dalam 'script' block, kita BEBAS menggunakan logika Groovy
                     env.DATABASE_URL = env.DATABASE_URL ?: 'postgresql://allertify:12345678@localhost:5437/allertify'
                     env.JWT_ACCESS_SECRET = env.JWT_ACCESS_SECRET ?: '4lL3rT1FFy_BE_ACC'
                     env.JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET ?: '4lL3rT1FFy_BE_RFR'
@@ -25,15 +24,6 @@ pipeline {
                     env.SMTP_FROM = env.SMTP_FROM ?: 'Allertify <your-email@gmail.com>'
                     env.GEMINI_API_KEY = env.GEMINI_API_KEY ?: 'your-gemini-api-key'
                     
-                    // Muat kredensial SSH di sini juga
-                    withCredentials([
-                        sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_USER_VAR'),
-                        string(credentialsId: 'vps-host', variable: 'VPS_HOST_VAR')
-                    ]) {
-                        env.SSH_USER = SSH_USER_VAR
-                        env.SSH_KEY = SSH_KEY_FILE
-                        env.VPS_HOST = VPS_HOST_VAR
-                    }
                     echo "✅ Environment variables initialized."
                 }
             }
@@ -112,23 +102,79 @@ pipeline {
 
         stage('Deploy to VPS') {
             steps {
-                // Gunakan variabel yang sudah di-set di stage 'Initialize Environment'
-                sh '''#!/bin/bash
-                    echo "🚀 Deploying to ${VPS_HOST}..."
-                    rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY}" --exclude 'node_modules' --exclude '.git' ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
-                    
-                    echo "🚀 Running docker compose on VPS..."
-                    ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker-compose down && docker-compose up -d --build"
-                '''
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_USER'),
+                    string(credentialsId: 'vps-host', variable: 'VPS_HOST')
+                ]) {
+                    sh '''#!/bin/bash
+                        echo "🚀 Deploying to ${VPS_HOST}..."
+                        
+                        # Pastikan SSH key file ada dan readable
+                        if [ ! -f "${SSH_KEY_FILE}" ]; then
+                            echo "❌ SSH key file tidak ditemukan: ${SSH_KEY_FILE}"
+                            exit 1
+                        fi
+                        
+                        # Set permission yang benar untuk SSH key
+                        chmod 600 "${SSH_KEY_FILE}"
+                        
+                        # Test SSH connection dulu
+                        echo "🔑 Testing SSH connection..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY_FILE}" "${SSH_USER}@${VPS_HOST}" "echo 'SSH connection successful'"
+                        
+                        # Deploy dengan rsync
+                        echo "📤 Syncing files to VPS..."
+                        rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY_FILE}" \
+                            --exclude 'node_modules' \
+                            --exclude '.git' \
+                            --exclude 'dist' \
+                            ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
+                        
+                        echo "🚀 Running docker compose on VPS..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY_FILE}" "${SSH_USER}@${VPS_HOST}" "
+                            cd ~/allertify-be
+                            docker-compose down
+                            docker-compose up -d --build
+                        "
+                        
+                        echo "✅ Deployment completed successfully!"
+                    '''
+                }
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh '''#!/bin/bash
-                    echo "🔎 Verifying deployment on ${VPS_HOST}..."
-                    ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "docker ps"
-                '''
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_USER'),
+                    string(credentialsId: 'vps-host', variable: 'VPS_HOST')
+                ]) {
+                    sh '''#!/bin/bash
+                        echo "🔎 Verifying deployment on ${VPS_HOST}..."
+                        
+                        # Set permission SSH key
+                        chmod 600 "${SSH_KEY_FILE}"
+                        
+                        # Check running containers
+                        echo "📋 Checking running containers..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY_FILE}" "${SSH_USER}@${VPS_HOST}" "docker ps"
+                        
+                        # Check application health
+                        echo "🏥 Checking application health..."
+                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY_FILE}" "${SSH_USER}@${VPS_HOST}" "
+                            cd ~/allertify-be
+                            if docker ps | grep -q allertify-be; then
+                                echo '✅ Container allertify-be is running'
+                                docker logs --tail 20 allertify-be
+                            else
+                                echo '❌ Container allertify-be is not running'
+                                exit 1
+                            fi
+                        "
+                        
+                        echo "✅ Verification completed!"
+                    '''
+                }
             }
         }
     }
