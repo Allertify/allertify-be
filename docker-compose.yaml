@@ -48,13 +48,13 @@ services:
       JWT_REFRESH_SECRET: 4lL3rT1FFy_BE
       REDIS_URL: redis://redis:6379
       # Cloudinary Configuration
-      CLOUDINARY_CLOUD_NAME: dvlsclorg
-      CLOUDINARY_API_KEY: 726327219123868
-      CLOUDINARY_API_SECRET: UF0HD89O-4IhQY2_NWE0qBjDfCc
-      GEMINI_API_KEY: AIzaSyBKPkySOCvHasm2MlFi0Njp36RNmwIZ2XI
-      SMTP_USER: arvanyudhistiaardana@gmail.com
-      SMTP_PASS: mglckoproodsaief
-      SMTP_FROM: arvanyudhistiaardana@gmail.com
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
     ports:
       - "127.0.0.1:3109:3000"
     depends_on:

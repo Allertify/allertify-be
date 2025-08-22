@@ -16,6 +16,9 @@ import { logger } from './utils/logger';
 import userRoutes from './routes/user.routes';
 import productRoutes from './routes/product.routes';
 import adminRoutes from './routes/admin.routes';
+ import { createAdminRouter } from './config/adminjs.config';
+
+
 
 dotenv.config();
 
@@ -46,6 +49,14 @@ app.use(express.json({limit: '10mb'}));
 app.use(express.urlencoded({extended: true}));
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// AdminJS Panel
+const setupAdminJS = async () => {
+  const adminRouter = await createAdminRouter();
+  app.use('/admin', adminRouter);
+};
+
+setupAdminJS().catch(console.error);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -120,6 +131,7 @@ process.on('unhandledRejection', (reason, promise) => {
 app.listen(port, () => {
   console.log(`🚀 Allertify Backend Server running on port ${port}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔐 AdminJS Panel available at: http://localhost:${port}/admin`);
 
 });
 

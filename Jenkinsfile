@@ -7,16 +7,16 @@ pipeline {
         DOCKER_TAG = "${BUILD_NUMBER}"
 
          // Environment variables for production
-        DATABASE_URL = 'postgresql://allertify:12345678@localhost:5437/allertify'
-        JWT_ACCESS_SECRET = '4lL3rT1FFy_BE_ACC'
-        JWT_REFRESH_SECRET = '4lL3rT1FFy_BE_RFR'
-        CLOUDINARY_CLOUD_NAME = 'dvlsclorg'
-        CLOUDINARY_API_KEY = '726327219123868'
-        CLOUDINARY_API_SECRET = 'UF0HD89O-4IhQY2_NWE0qBjDfCc'
-        SMTP_USER = 'arvanyudhistiaardana@gmail.com'
-        SMTP_PASS = 'mglckoproodsaief'
-        SMTP_FROM = 'arvanyudhistiaardana@gmail.com'
-        GEMINI_API_KEY = 'AIzaSyBKPkySOCvHasm2MlFi0Njp36RNmwIZ2XI'
+        DATABASE_URL = env.DATABASE_URL ?: 'postgresql://allertify:12345678@localhost:5437/allertify'
+        JWT_ACCESS_SECRET = env.JWT_ACCESS_SECRET ?: '4lL3rT1FFy_BE_ACC'
+        JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET ?: '4lL3rT1FFy_BE_RFR'
+        CLOUDINARY_CLOUD_NAME = env.CLOUDINARY_CLOUD_NAME ?: 'your-cloud-name'
+        CLOUDINARY_API_KEY = env.CLOUDINARY_API_KEY ?: 'your-api-key'
+        CLOUDINARY_API_SECRET = env.CLOUDINARY_API_SECRET ?: 'your-api-secret'
+        SMTP_USER = env.SMTP_USER ?: 'your-email@gmail.com'
+        SMTP_PASS = env.SMTP_PASS ?: 'your-app-password'
+        SMTP_FROM = env.SMTP_FROM ?: 'Allertify <your-email@gmail.com>'
+        GEMINI_API_KEY = env.GEMINI_API_KEY ?: 'your-gemini-api-key'
     }
     
     stages {
