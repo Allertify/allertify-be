@@ -2,35 +2,39 @@ pipeline {
     agent any
     
     environment {
+        // Blok ini sekarang hanya berisi deklarasi statis yang sederhana
         NODE_VERSION = '20'
         DOCKER_IMAGE = 'allertify-be'
         DOCKER_TAG = "${BUILD_NUMBER}"
-
-        // Environment variables for production
-        DATABASE_URL = env.DATABASE_URL ?: 'postgresql://allertify:12345678@localhost:5437/allertify'
-        JWT_ACCESS_SECRET = env.JWT_ACCESS_SECRET ?: '4lL3rT1FFy_BE_ACC'
-        JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET ?: '4lL3rT1FFy_BE_RFR'
-        CLOUDINARY_CLOUD_NAME = env.CLOUDINARY_CLOUD_NAME ?: 'your-cloud-name'
-        CLOUDINARY_API_KEY = env.CLOUDINARY_API_KEY ?: 'your-api-key'
-        CLOUDINARY_API_SECRET = env.CLOUDINARY_API_SECRET ?: 'your-api-secret'
-        SMTP_USER = env.SMTP_USER ?: 'your-email@gmail.com'
-        SMTP_PASS = env.SMTP_PASS ?: 'your-app-password'
-        SMTP_FROM = env.SMTP_FROM ?: 'Allertify <your-email@gmail.com>'
-        GEMINI_API_KEY = env.GEMINI_API_KEY ?: 'your-gemini-api-key'
     }
     
     stages {
-        stage('Setup Env Vars') {
+        // --- TAHAP BARU UNTUK INISIALISASI VARIABEL ---
+        stage('Initialize Environment') {
             steps {
-                withCredentials([
-                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
-                    string(credentialsId: 'vps-host', variable: 'VPS_HOST')
-                ]) {
-                                        script {
-                        env.SSH_USER = 'root'  // Hardcode username jadi root
-                        env.SSH_KEY = SSH_KEY
-                        env.VPS_HOST = VPS_HOST
+                script {
+                    // Di dalam 'script' block, kita BEBAS menggunakan logika Groovy
+                    env.DATABASE_URL = env.DATABASE_URL ?: 'postgresql://allertify:12345678@localhost:5437/allertify'
+                    env.JWT_ACCESS_SECRET = env.JWT_ACCESS_SECRET ?: '4lL3rT1FFy_BE_ACC'
+                    env.JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET ?: '4lL3rT1FFy_BE_RFR'
+                    env.CLOUDINARY_CLOUD_NAME = env.CLOUDINARY_CLOUD_NAME ?: 'your-cloud-name'
+                    env.CLOUDINARY_API_KEY = env.CLOUDINARY_API_KEY ?: 'your-api-key'
+                    env.CLOUDINARY_API_SECRET = env.CLOUDINARY_API_SECRET ?: 'your-api-secret'
+                    env.SMTP_USER = env.SMTP_USER ?: 'your-email@gmail.com'
+                    env.SMTP_PASS = env.SMTP_PASS ?: 'your-app-password'
+                    env.SMTP_FROM = env.SMTP_FROM ?: 'Allertify <your-email@gmail.com>'
+                    env.GEMINI_API_KEY = env.GEMINI_API_KEY ?: 'your-gemini-api-key'
+                    
+                    // Muat kredensial SSH di sini juga
+                    withCredentials([
+                        sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_USER_VAR'),
+                        string(credentialsId: 'vps-host', variable: 'VPS_HOST_VAR')
+                    ]) {
+                        env.SSH_USER = SSH_USER_VAR
+                        env.SSH_KEY = SSH_KEY_FILE
+                        env.VPS_HOST = VPS_HOST_VAR
                     }
+                    echo "✅ Environment variables initialized."
                 }
             }
         }
@@ -47,7 +51,6 @@ pipeline {
                 sh '''
                     echo "✅ Commit yang sedang dideploy:"
                     git log -1 --pretty=format:"%h - %an: %s"
-                    
                 '''
             }
         }
@@ -72,169 +75,75 @@ pipeline {
             }
         }
 
-        // stage('Security Scan') {
-        //     steps {
-        //         echo '🔒 Running security scan...'
-        //         sh '''
-        //             npm audit --audit-level=high
-        //         '''
-        //     }
-        // }
-
         stage('Build Docker Image') {
-            // when {
-            //     anyOf {
-            //         branch 'arvan'
-            //     }
-            // }
             steps {
                 echo '🐳 Building Docker image...'
                 script {
                     def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
                     
-                    // Save image for deployment
+                    // Tidak perlu save dan archive jika Anda punya Docker Hub/Registry
+                    // Jika tidak punya, baris di bawah ini sudah benar.
                     sh "docker save ${DOCKER_IMAGE}:${DOCKER_TAG} | gzip > ${DOCKER_IMAGE}-${DOCKER_TAG}.tar.gz"
                     archiveArtifacts artifacts: "${DOCKER_IMAGE}-${DOCKER_TAG}.tar.gz", fingerprint: true
                 }
             }
         }
 
-        stage('Generate Environment File') {
+        stage('Generate Environment File for Deployment') {
             steps {
-                script {
-                    // Generate .env dari Jenkins credentials
-                    sh '''
-                        echo "# Database Configuration" > .env
-                        echo "DATABASE_URL=${DATABASE_URL}" >> .env
-                        echo "" >> .env
-                        echo "# JWT Configuration" >> .env
-                        echo "JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}" >> .env
-                        echo "JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}" >> .env
-                        echo "" >> .env
-                        echo "# Cloudinary Configuration" >> .env
-                        echo "CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}" >> .env
-                        echo "CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}" >> .env
-                        echo "CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}" >> .env
-                        echo "" >> .env
-                        echo "# Email Configuration" >> .env
-                        echo "SMTP_USER=${SMTP_USER}" >> .env
-                        echo "SMTP_PASS=${SMTP_PASS}" >> .env
-                        echo "SMTP_FROM=${SMTP_FROM}" >> .env
-                        echo "" >> .env
-                        echo "# AI Configuration" >> .env
-                        echo "GEMINI_API_KEY=${GEMINI_API_KEY}" >> .env
-                        echo "" >> .env
-                        echo "# Server Configuration" >> .env
-                        echo "NODE_ENV=production" >> .env
-                        echo "PORT=3001" >> .env
-                        echo "BYPASS_AI=false" >> .env
-                        echo "DEFAULT_TIMEZONE=Asia/Jakarta" >> .env
-                        echo "" >> .env
-                        echo "# Hardcoded Data" >> .env
-                        echo "HARDCODED_USER_ID=1" >> .env
-                        echo "HARDCODED_USER_EMAIL=test@example.com" >> .env
-                        echo "HARDCODED_USER_ROLE=user" >> .env
-                        echo "HARDCODED_ALLERGENS=gluten,lactose,nuts,shellfish,eggs" >> .env
-                    '''
-                }
+                // Generate .env file yang akan dikirim ke VPS
+                sh '''
+                    echo "# Auto-generated by Jenkins Build #${BUILD_NUMBER}" > .env
+                    echo "DATABASE_URL=${DATABASE_URL}" >> .env
+                    echo "JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}" >> .env
+                    echo "JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}" >> .env
+                    echo "CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}" >> .env
+                    echo "CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}" >> .env
+                    echo "CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}" >> .env
+                    echo "SMTP_USER=${SMTP_USER}" >> .env
+                    echo "SMTP_PASS=${SMTP_PASS}" >> .env
+                    echo "SMTP_FROM=${SMTP_FROM}" >> .env
+                    echo "GEMINI_API_KEY=${GEMINI_API_KEY}" >> .env
+                    echo "NODE_ENV=production" >> .env
+                    echo "PORT=3001" >> .env
+                '''
             }
         }
 
         stage('Deploy to VPS') {
-            // when {
-            //     anyOf {
-            //         branch 'arvan'
-            //     }
-            // }
             steps {
-                withCredentials([
-                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
-                    string(credentialsId: 'vps-host', variable: 'VPS_HOST')
-                ]) {
-                    sh '''#!/bin/bash
-                        echo "📁 Mengecek dan membersihkan direktori allertify-be di VPS..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" '
-                            if [ -d ~/allertify-be ]; then
-                                echo "📦 Direktori allertify-be ditemukan. Menghapus..."
-                                rm -rf ~/allertify-be
-                            else
-                                echo "📂 Direktori allertify-be tidak ditemukan. Akan dibuat baru."
-                            fi
-                            mkdir -p ~/allertify-be
-                        '
-
-                        echo "📤 Menyalin source code..."
-                        rsync -av -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY}" ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
-                        
-                        echo "🔧 Setting .env file permissions..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "chmod 644 ~/allertify-be/.env"
-
-                        echo "📦 Installing dependencies di VPS..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npm ci"
-                        
-                        echo "🔧 Generating Prisma client di VPS..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npx prisma generate"
-                        
-                        echo "🏗️ Building application di VPS..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && npm run build"
-                        
-                        echo "🚀 Menjalankan docker compose di VPS..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker compose --env-file .env up -d --build"
-                        
-                        echo "📋 Copying Prisma client dari container ke host..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker cp allertify-be:/app/node_modules/.prisma ./node_modules/ && docker cp allertify-be:/app/node_modules/@prisma ./node_modules/"
-                        
-                        echo "📄 Copying .env file ke container..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker cp .env allertify-be:/app/.env"
-
-                        echo "✅ Deployment berhasil dijalankan"
-                    '''
-                }
+                // Gunakan variabel yang sudah di-set di stage 'Initialize Environment'
+                sh '''#!/bin/bash
+                    echo "🚀 Deploying to ${VPS_HOST}..."
+                    rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ${SSH_KEY}" --exclude 'node_modules' --exclude '.git' ./ "${SSH_USER}@${VPS_HOST}:~/allertify-be/"
+                    
+                    echo "🚀 Running docker compose on VPS..."
+                    ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "cd ~/allertify-be && docker-compose down && docker-compose up -d --build"
+                '''
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                withCredentials([
-                    sshUserPrivateKey(credentialsId: 'vps-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
-                    string(credentialsId: 'vps-host', variable: 'VPS_HOST')
-                ]) {
-                    sh '''#!/bin/bash
-                        echo "Memeriksa container yang berjalan..."
-                        ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "docker ps"
-                    '''
-                }
-                
-                script {
-                    try {
-                        sh '''#!/bin/bash
-                            echo "Memeriksa respons aplikasi..."
-                            curl -f http://${VPS_HOST}:3000/health || echo "Service might still be starting up"
-                        '''
-                        echo "Deployment verification complete"
-                    } catch (Exception e) {
-                        echo "Warning: Could not verify service: ${e.message}"
-                    }
-                }
+                sh '''#!/bin/bash
+                    echo "🔎 Verifying deployment on ${VPS_HOST}..."
+                    ssh -o StrictHostKeyChecking=no -i "${SSH_KEY}" "${SSH_USER}@${VPS_HOST}" "docker ps"
+                '''
             }
         }
     }
 
     post {
         always {
-            echo '🧹 Cleaning up...'
-            sh '''
-                docker system prune -f
-                rm -f ${DOCKER_IMAGE}-*.tar.gz
-            '''
+            echo '🧹 Cleaning up workspace...'
+            // Membersihkan file-file sementara di workspace Jenkins
+            deleteDir() 
         }
-        
         success {
-            echo "✅ Deployment successful! Application running at http://${env.VPS_HOST}:3000"
+            echo "✅ Deployment successful!"
         }
-        
         failure {
-            echo "❌ Deployment failed. Check logs for details."
+            echo "❌ Deployment failed."
         }
     }
 }
